@@ -1,6 +1,6 @@
 # AI Studio Proxy API
 
-这是一个基于 Python 的代理服务器，用于将 Google AI Studio 的网页界面转换为 OpenAI 兼容的 API。通过 Camoufox (反指纹检测的 Firefox) 和 Playwright 自动化，提供稳定的 API 访问。
+这是一个基于 Python 的代理服务器，用于将 **Qwen Chat (chat.qwen.ai)** 的网页界面转换为 OpenAI 兼容的 API。通过 Camoufox (反指纹检测的 Firefox) 和 Playwright 自动化，提供稳定的 API 访问。
 
 [![Star History Chart](https://api.star-history.com/svg?repos=CJackHwang/AIstudioProxyAPI&type=Date)](https://www.star-history.com/#CJackHwang/AIstudioProxyAPI&Date)
 
@@ -26,6 +26,8 @@ This project is generously sponsored by ZMTO. Visit their website: [https://zmto
 ---
 
 **这是当前维护的 Python 版本。不再维护的 Javascript 版本请参见 [`deprecated_javascript_version/README.md`](deprecated_javascript_version/README.md)。**
+
+> ℹ️ 2025 年起，项目已经迁移至阿里云 Qwen Chat（https://chat.qwen.ai/）。脚本会自动连接到该站点并支持诸如 Qwen3-Max、Qwen3-VL 等官方模型。Google AI Studio 相关逻辑已被移除。
 
 ## 系统要求
 
