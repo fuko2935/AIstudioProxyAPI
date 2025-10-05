@@ -68,14 +68,30 @@ async def save_error_snapshot(tag: str) -> None:
 
 
 async def _handle_model_list_response(response: Any):
-    """Populate the model list with the predefined Qwen catalogue."""
+    """Populate the model list cache using the current Qwen UI state."""
 
     import server
 
-    server.global_model_list_raw_json = DEFAULT_QWEN_MODELS
-    server.parsed_model_list = DEFAULT_QWEN_MODELS
+    models = []
+    page = getattr(server, "page_instance", None)
+
+    if page and not page.is_closed():
+        try:
+            from .model_management import refresh_model_catalog
+
+            models = await refresh_model_catalog(page, req_id="model-response")
+        except Exception as exc:
+            logger.error(f"[model-response] Failed to collect models from UI: {exc}")
+
+    if not models:
+        models = DEFAULT_QWEN_MODELS
+
+    server.global_model_list_raw_json = models
+    server.parsed_model_list = models
     if server.model_list_fetch_event:
         server.model_list_fetch_event.set()
+
+    return models
 
 
 async def detect_and_extract_page_error(page) -> Optional[str]:
