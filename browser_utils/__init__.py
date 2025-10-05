@@ -12,6 +12,7 @@ from .operations import (
     get_raw_text_content
 )
 from .model_management import (
+    refresh_model_catalog,
     switch_ai_studio_model,
     load_excluded_models,
     _handle_initial_model_state_and_storage,
@@ -41,6 +42,7 @@ __all__ = [
     'get_raw_text_content',
     
     # 模型管理相关
+    'refresh_model_catalog',
     'switch_ai_studio_model',
     'load_excluded_models',
     '_handle_initial_model_state_and_storage',

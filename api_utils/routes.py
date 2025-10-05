@@ -4,6 +4,7 @@ FastAPI路由处理器模块
 """
 
 import asyncio
+import json
 import os
 import random
 import time
@@ -24,10 +25,13 @@ from config import *
 from models import ChatCompletionRequest, WebSocketConnectionManager
 
 # --- browser_utils模块导入 ---
-from browser_utils import _handle_model_list_response
+from browser_utils import _handle_model_list_response, refresh_model_catalog
 
 # --- 依赖项导入 ---
 from .dependencies import *
+
+
+MODEL_LIST_REFRESH_TTL_SECONDS = int(os.environ.get('MODEL_LIST_REFRESH_TTL_SECONDS', '300'))
 
 
 # --- 静态文件端点 ---
@@ -154,15 +158,60 @@ async def list_models(
             if not model_list_fetch_event.is_set():
                 model_list_fetch_event.set()
     
+    import server
+
+    now = time.time()
+    last_refresh = getattr(server, 'model_list_last_refreshed', 0.0)
+    refresh_needed = not parsed_model_list or (now - last_refresh > MODEL_LIST_REFRESH_TTL_SECONDS)
+
+    if refresh_needed:
+        if page_instance and not page_instance.is_closed():
+            logger.info("/v1/models: 缓存为空或已过期，尝试刷新模型目录。")
+            try:
+                refreshed_models = await refresh_model_catalog(page_instance, req_id="api-model-refresh")
+            except Exception as refresh_err:
+                logger.error(f"/v1/models: 刷新模型目录失败: {refresh_err}")
+                refreshed_models = []
+
+            if refreshed_models:
+                filtered_models = [m for m in refreshed_models if m.get("id") not in excluded_model_ids]
+            else:
+                filtered_models = []
+
+            if filtered_models:
+                parsed_model_list = filtered_models
+                server.parsed_model_list = filtered_models
+                server.global_model_list_raw_json = json.dumps({"data": filtered_models, "object": "list"})
+                server.model_list_last_refreshed = time.time()
+                if model_list_fetch_event and not model_list_fetch_event.is_set():
+                    model_list_fetch_event.set()
+            else:
+                logger.warning("/v1/models: 刷新后仍无可用模型，使用 DEFAULT_QWEN_MODELS 作为回退。")
+                parsed_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+                server.parsed_model_list = parsed_model_list
+                server.global_model_list_raw_json = json.dumps({"data": parsed_model_list, "object": "list"})
+                server.model_list_last_refreshed = time.time()
+                if model_list_fetch_event and not model_list_fetch_event.is_set():
+                    model_list_fetch_event.set()
+        else:
+            logger.warning("/v1/models: 页面实例不可用，使用 DEFAULT_QWEN_MODELS 作为回退。")
+            parsed_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+            server.parsed_model_list = parsed_model_list
+            server.global_model_list_raw_json = json.dumps({"data": parsed_model_list, "object": "list"})
+            server.model_list_last_refreshed = time.time()
+            if model_list_fetch_event and not model_list_fetch_event.is_set():
+                model_list_fetch_event.set()
+
     if parsed_model_list:
         final_model_list = [m for m in parsed_model_list if m.get("id") not in excluded_model_ids]
-        return {"object": "list", "data": final_model_list}
     else:
-        logger.warning("模型列表为空，返回默认后备模型。")
-        return {"object": "list", "data": [{
-            "id": DEFAULT_FALLBACK_MODEL_ID, "object": "model", "created": int(time.time()),
-            "owned_by": "camoufox-proxy-fallback"
-        }]}
+        final_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+
+    if not final_model_list:
+        logger.warning("/v1/models: 过滤后模型列表为空，使用 DEFAULT_QWEN_MODELS 作为最终回退。")
+        final_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+
+    return {"object": "list", "data": final_model_list}
 
 
 # --- 聊天完成端点 ---

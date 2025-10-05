@@ -6,7 +6,7 @@ import json
 import os
 import logging
 import time
-from typing import Optional, Set
+from typing import Optional, Set, List, Dict, Any
 
 from playwright.async_api import Page as AsyncPage, expect as expect_async, Error as PlaywrightAsyncError
 
@@ -15,6 +15,125 @@ from config import *
 from models import ClientDisconnectedError
 
 logger = logging.getLogger("AIStudioProxyServer")
+
+# ==================== 模型目录刷新功能 ====================
+
+async def refresh_model_catalog(page: AsyncPage, req_id: str = "model-refresh") -> List[Dict[str, Any]]:
+    """打开模型选择器并解析可用模型列表。"""
+    if not page or page.is_closed():
+        logger.warning(f"[{req_id}] 页面不可用，无法刷新模型目录。")
+        return []
+
+    menu_opened = False
+    models: List[Dict[str, Any]] = []
+    seen_ids: Set[str] = set()
+    created_ts = int(time.time())
+
+    try:
+        model_button = page.locator('#model-selector-0-button')
+        await expect_async(model_button).to_be_visible(timeout=15000)
+        await model_button.click(timeout=5000)
+        menu_opened = True
+        await asyncio.sleep(0.2)
+
+        model_items = page.locator('[aria-label="model-item"]')
+        await expect_async(model_items.first).to_be_visible(timeout=15000)
+        item_count = await model_items.count()
+
+        logger.info(f"[{req_id}] 检测到 {item_count} 个模型选项，开始解析。")
+
+        for idx in range(item_count):
+            item_locator = model_items.nth(idx)
+
+            model_id_value = None
+            for attr_name in ("data-model-id", "data-model", "data-value", "data-testid"):
+                try:
+                    attr_val = await item_locator.get_attribute(attr_name)
+                except PlaywrightAsyncError:
+                    attr_val = None
+                if attr_val:
+                    model_id_value = attr_val.strip()
+                    if model_id_value:
+                        break
+
+            raw_text = ""
+            try:
+                raw_text = await item_locator.inner_text()
+            except PlaywrightAsyncError:
+                raw_text = ""
+
+            text_lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            display_name = text_lines[0] if text_lines else (model_id_value or "Unknown Model")
+
+            owner_value = None
+            for attr_name in ("data-owned-by", "data-owner"):
+                try:
+                    attr_val = await item_locator.get_attribute(attr_name)
+                except PlaywrightAsyncError:
+                    attr_val = None
+                if attr_val:
+                    owner_value = attr_val.strip()
+                    if owner_value:
+                        break
+
+            description_value = None
+            for attr_name in ("data-model-description", "data-description", "data-tooltip", "title", "aria-label"):
+                try:
+                    attr_val = await item_locator.get_attribute(attr_name)
+                except PlaywrightAsyncError:
+                    attr_val = None
+                if attr_val:
+                    description_value = attr_val.strip()
+                    if description_value:
+                        break
+
+            if not model_id_value and display_name:
+                model_id_value = display_name.strip()
+
+            if model_id_value and '/' in model_id_value:
+                simple_model_id = model_id_value.split('/')[-1]
+            else:
+                simple_model_id = model_id_value.strip() if model_id_value else ""
+
+            if not simple_model_id:
+                simple_model_id = display_name.replace(" ", "-").lower()
+
+            if simple_model_id in seen_ids:
+                continue
+            seen_ids.add(simple_model_id)
+
+            if not owner_value:
+                owner_value = "ai_studio"
+
+            if not description_value:
+                description_value = text_lines[1] if len(text_lines) > 1 else f"Model option for {display_name}"
+
+            models.append({
+                "id": simple_model_id,
+                "object": "model",
+                "created": created_ts,
+                "owned_by": owner_value,
+                "display_name": display_name,
+                "description": description_value
+            })
+
+        models.sort(key=lambda m: m.get("display_name", "").lower())
+        logger.info(f"[{req_id}] 模型目录刷新完成，共解析 {len(models)} 个模型。")
+        return models
+
+    except PlaywrightAsyncError as playwright_err:
+        logger.error(f"[{req_id}] 通过UI刷新模型目录时发生Playwright错误: {playwright_err}")
+        raise
+    except Exception as err:
+        logger.exception(f"[{req_id}] 刷新模型目录时发生未知错误: {err}")
+        raise
+    finally:
+        if menu_opened:
+            try:
+                await page.keyboard.press("Escape")
+                await asyncio.sleep(0.1)
+            except Exception as close_err:
+                logger.debug(f"[{req_id}] 关闭模型选择器时发生非致命错误: {close_err}")
 
 # ==================== 强制UI状态设置功能 ====================
 
@@ -449,11 +568,12 @@ async def _handle_initial_model_state_and_storage(page: AsyncPage):
     current_ai_studio_model_id = getattr(server, 'current_ai_studio_model_id', None)
     parsed_model_list = getattr(server, 'parsed_model_list', [])
     model_list_fetch_event = getattr(server, 'model_list_fetch_event', None)
-    
+    excluded_model_ids = getattr(server, 'excluded_model_ids', set())
+
     logger.info("--- (新) 处理初始模型状态, localStorage 和 isAdvancedOpen ---")
     needs_reload_and_storage_update = False
     reason_for_reload = ""
-    
+
     try:
         initial_prefs_str = await page.evaluate("() => localStorage.getItem('aiStudioUserPreference')")
         if not initial_prefs_str:
@@ -533,6 +653,34 @@ async def _handle_initial_model_state_and_storage(page: AsyncPage):
             await _set_model_from_page_display(page, set_storage=False)
         except Exception as fallback_err:
             logger.error(f"   回退设置模型ID也失败: {fallback_err}")
+
+    try:
+        await expect_async(page.locator(INPUT_SELECTOR)).to_be_visible(timeout=20000)
+    except Exception as input_ready_err:
+        logger.warning(f"   检测聊天输入区域时遇到问题: {input_ready_err}")
+
+    refreshed_models: List[Dict[str, Any]] = []
+    try:
+        refreshed_models = await refresh_model_catalog(page, req_id="initial-model-refresh")
+    except Exception as refresh_err:
+        logger.error(f"   刷新模型目录失败，将使用默认回退列表: {refresh_err}")
+
+    if refreshed_models:
+        filtered_models = [m for m in refreshed_models if m.get("id") not in excluded_model_ids]
+    else:
+        filtered_models = []
+
+    if not filtered_models:
+        logger.warning("   刷新后模型列表为空或全部被排除，使用 DEFAULT_QWEN_MODELS 作为回退。")
+        filtered_models = [dict(model) for model in DEFAULT_QWEN_MODELS]
+
+    server.parsed_model_list = filtered_models
+    server.global_model_list_raw_json = json.dumps({"data": filtered_models, "object": "list"})
+    server.model_list_last_refreshed = time.time()
+    if model_list_fetch_event and not model_list_fetch_event.is_set():
+        model_list_fetch_event.set()
+
+    return server.parsed_model_list
 
 async def _set_model_from_page_display(page: AsyncPage, set_storage: bool = False):
     """从页面显示设置模型"""

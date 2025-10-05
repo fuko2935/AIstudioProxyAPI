@@ -13,8 +13,9 @@ from .settings import *
 __all__ = [
     # 常量配置
     'MODEL_NAME',
-    'CHAT_COMPLETION_ID_PREFIX', 
+    'CHAT_COMPLETION_ID_PREFIX',
     'DEFAULT_FALLBACK_MODEL_ID',
+    'DEFAULT_QWEN_MODELS',
     'DEFAULT_TEMPERATURE',
     'DEFAULT_MAX_OUTPUT_TOKENS',
     'DEFAULT_TOP_P',
