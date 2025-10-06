@@ -12,11 +12,11 @@ from .operations import (
     get_raw_text_content
 )
 from .model_management import (
+    refresh_model_catalog,
     switch_ai_studio_model,
     load_excluded_models,
     _handle_initial_model_state_and_storage,
     _set_model_from_page_display,
-    refresh_model_catalog,
     _verify_ui_state_settings,
     _force_ui_state_settings,
     _force_ui_state_with_retry,
@@ -42,11 +42,11 @@ __all__ = [
     'get_raw_text_content',
     
     # 模型管理相关
+    'refresh_model_catalog',
     'switch_ai_studio_model',
     'load_excluded_models',
     '_handle_initial_model_state_and_storage',
     '_set_model_from_page_display',
-    'refresh_model_catalog',
     '_verify_ui_state_settings',
     '_force_ui_state_settings',
     '_force_ui_state_with_retry',

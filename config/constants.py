@@ -5,6 +5,9 @@
 
 import os
 import json
+
+# 为需要固定时间戳的常量提供占位值
+_FALLBACK_CREATED_TS = 0
 from dotenv import load_dotenv
 
 # 加载 .env 文件
@@ -14,6 +17,26 @@ load_dotenv()
 MODEL_NAME = os.environ.get('MODEL_NAME', 'Qwen-Proxy-API')
 CHAT_COMPLETION_ID_PREFIX = os.environ.get('CHAT_COMPLETION_ID_PREFIX', 'chatcmpl-')
 DEFAULT_FALLBACK_MODEL_ID = os.environ.get('DEFAULT_FALLBACK_MODEL_ID', "qwen3-max")
+
+# --- 默认模型回退列表 ---
+DEFAULT_QWEN_MODELS = [
+    {
+        "id": "qwen-plus",
+        "object": "model",
+        "created": _FALLBACK_CREATED_TS,
+        "owned_by": "fallback-qwen",
+        "display_name": "Qwen Plus",
+        "description": "Fallback Qwen model definition used when the live catalog is unavailable."
+    },
+    {
+        "id": "qwen-max",
+        "object": "model",
+        "created": _FALLBACK_CREATED_TS,
+        "owned_by": "fallback-qwen",
+        "display_name": "Qwen Max",
+        "description": "Fallback Qwen Max model definition used when the live catalog is unavailable."
+    }
+]
 
 # --- 默认参数值 ---
 DEFAULT_TEMPERATURE = float(os.environ.get('DEFAULT_TEMPERATURE', '1.0'))

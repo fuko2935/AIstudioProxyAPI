@@ -105,6 +105,7 @@ PLAYWRIGHT_PROXY_SETTINGS: Optional[Dict[str, str]] = None
 global_model_list_raw_json: Optional[List[Any]] = None
 parsed_model_list: List[Dict[str, Any]] = []
 model_list_fetch_event = asyncio.Event()
+model_list_last_refreshed: float = 0.0
 
 current_ai_studio_model_id: Optional[str] = None
 model_switching_lock: Optional[Lock] = None

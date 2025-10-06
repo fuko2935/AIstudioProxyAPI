@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
 import time
 from typing import Any, Dict, List, Optional, Set
 
-from playwright.async_api import TimeoutError, expect as expect_async
+from playwright.async_api import Error as PlaywrightAsyncError, TimeoutError, expect as expect_async
 
 from config import EXCLUDED_MODELS_FILENAME
 from .operations import DEFAULT_QWEN_MODELS, save_error_snapshot
@@ -79,75 +80,124 @@ async def _set_model_from_page_display(page, req_id: str = "unknown") -> Optiona
 
 
 async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dict[str, Any]]:
-    """Read the available Qwen models from the dropdown menu."""
+    """打开模型选择器并解析可用模型列表。"""
 
-    logger.info(f"[{req_id}] Refreshing Qwen model catalogue from UI …")
-    dropdown_button = page.locator('#model-selector-0-button')
-    models: List[Dict[str, Any]] = []
-    seen_ids: Set[str] = set()
+    if not page or page.is_closed():
+        logger.warning(f"[{req_id}] 页面不可用，无法刷新模型目录。")
+        return []
 
     menu_opened = False
+    models: List[Dict[str, Any]] = []
+    seen_ids: Set[str] = set()
+    created_ts = int(time.time())
+
     try:
-        await expect_async(dropdown_button).to_be_visible(timeout=8000)
-        await dropdown_button.click()
+        dropdown_button = page.locator('#model-selector-0-button')
+        await expect_async(dropdown_button).to_be_visible(timeout=15000)
+        await dropdown_button.click(timeout=5000)
         menu_opened = True
+        await asyncio.sleep(0.2)
 
         menu_items = page.locator('[aria-label="model-item"]')
-        await expect_async(menu_items.first).to_be_visible(timeout=5000)
+        await expect_async(menu_items.first).to_be_visible(timeout=15000)
         item_count = await menu_items.count()
+
+        logger.info(f"[{req_id}] 检测到 {item_count} 个模型选项，开始解析。")
 
         for index in range(item_count):
             option = menu_items.nth(index)
+
+            model_id_value = None
+            for attr_name in ("data-model-id", "data-model", "data-value", "data-testid"):
+                try:
+                    attr_val = await option.get_attribute(attr_name)
+                except PlaywrightAsyncError:
+                    attr_val = None
+                if attr_val:
+                    model_id_value = attr_val.strip()
+                    if model_id_value:
+                        break
+
+            raw_text = ""
             try:
-                label_raw = await option.inner_text()
-            except Exception:
+                raw_text = await option.inner_text()
+            except PlaywrightAsyncError:
+                raw_text = ""
+
+            text_lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+            display_name = text_lines[0] if text_lines else (model_id_value or "Unknown Model")
+
+            owner_value = None
+            for attr_name in ("data-owned-by", "data-owner"):
+                try:
+                    attr_val = await option.get_attribute(attr_name)
+                except PlaywrightAsyncError:
+                    attr_val = None
+                if attr_val:
+                    owner_value = attr_val.strip()
+                    if owner_value:
+                        break
+
+            description_value = None
+            for attr_name in ("data-model-description", "data-description", "data-tooltip", "title", "aria-label"):
+                try:
+                    attr_val = await option.get_attribute(attr_name)
+                except PlaywrightAsyncError:
+                    attr_val = None
+                if attr_val:
+                    description_value = attr_val.strip()
+                    if description_value:
+                        break
+
+            if not model_id_value and display_name:
+                model_id_value = display_name.strip()
+
+            if model_id_value and '/' in model_id_value:
+                simple_model_id = model_id_value.split('/')[-1]
+            else:
+                simple_model_id = model_id_value.strip() if model_id_value else ""
+
+            if not simple_model_id:
+                simple_model_id = display_name.replace(" ", "-").lower()
+
+            if simple_model_id in seen_ids:
                 continue
+            seen_ids.add(simple_model_id)
 
-            if not label_raw:
-                continue
+            if not owner_value:
+                owner_value = "ai_studio"
 
-            lines = [line.strip() for line in label_raw.split('\n') if line.strip()]
-            if not lines:
-                continue
+            if not description_value:
+                description_value = text_lines[1] if len(text_lines) > 1 else f"Model option for {display_name}"
 
-            display_name = lines[0]
-            description = " ".join(lines[1:]) if len(lines) > 1 else ""
-
-            model_id = await option.get_attribute("data-model-id")
-            if model_id:
-                model_id = model_id.strip()
-
-            if not model_id:
-                normalized = re.sub(r"[^a-z0-9_.-]+", "-", display_name.lower())
-                model_id = normalized.strip("-") or display_name.lower().replace(" ", "-")
-
-            if model_id in seen_ids:
-                continue
-
-            seen_ids.add(model_id)
             models.append({
-                "id": model_id,
+                "id": simple_model_id,
                 "object": "model",
-                "created": int(time.time()),
-                "owned_by": "qwen",
+                "created": created_ts,
+                "owned_by": owner_value,
                 "display_name": display_name,
-                "description": description or None,
+                "description": description_value,
             })
 
-    except Exception as exc:
-        logger.error(f"[{req_id}] Failed to refresh model catalogue: {exc}")
+        models.sort(key=lambda item: item.get("display_name", "").lower())
+        logger.info(f"[{req_id}] 模型目录刷新完成，共解析 {len(models)} 个模型。")
+        return models
+
+    except PlaywrightAsyncError as playwright_err:
+        logger.error(f"[{req_id}] 通过UI刷新模型目录时发生Playwright错误: {playwright_err}")
         await save_error_snapshot(f"model_catalog_refresh_error_{req_id}")
-        models = []
+        raise
+    except Exception as exc:
+        logger.exception(f"[{req_id}] 刷新模型目录时发生未知错误: {exc}")
+        await save_error_snapshot(f"model_catalog_refresh_error_{req_id}")
+        raise
     finally:
         if menu_opened:
             try:
                 await page.keyboard.press('Escape')
-            except Exception:
-                pass
-
-    logger.info(f"[{req_id}] Retrieved {len(models)} model option(s) from UI.")
-    return models
-
+                await asyncio.sleep(0.1)
+            except Exception as close_err:
+                logger.debug(f"[{req_id}] 关闭模型选择器时发生非致命错误: {close_err}")
 
 async def switch_ai_studio_model(page, model_id: str, req_id: str) -> bool:
     """Switch Qwen model through the dropdown menu."""
