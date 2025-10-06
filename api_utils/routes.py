@@ -143,17 +143,34 @@ async def list_models(
     """获取模型列表"""
     logger.info("[API] 收到 /v1/models 请求。")
     
-    if not model_list_fetch_event.is_set() and page_instance and not page_instance.is_closed():
-        logger.info("/v1/models: 模型列表事件未设置，尝试刷新页面...")
+    should_refresh = (not parsed_model_list) or (not model_list_fetch_event.is_set())
+
+    if should_refresh and page_instance and not page_instance.is_closed():
+        logger.info("/v1/models: 动态刷新模型列表…")
+        try:
+            parsed_model_list = await _handle_model_list_response(None)
+        except Exception as e:
+            logger.error(f"/v1/models: 刷新模型列表失败: {e}")
+            parsed_model_list = []
+
+    if (not parsed_model_list) and page_instance and not page_instance.is_closed():
+        logger.info("/v1/models: 模型列表仍为空，尝试重新加载页面后再次刷新…")
+        if model_list_fetch_event:
+            try:
+                model_list_fetch_event.clear()
+            except Exception:
+                pass
+
         try:
             await page_instance.reload(wait_until="domcontentloaded", timeout=20000)
             await asyncio.wait_for(model_list_fetch_event.wait(), timeout=10.0)
+            parsed_model_list = await _handle_model_list_response(None)
         except Exception as e:
-            logger.error(f"/v1/models: 刷新或等待模型列表时出错: {e}")
+            logger.error(f"/v1/models: 重新加载后仍无法获取模型列表: {e}")
         finally:
             if not model_list_fetch_event.is_set():
                 model_list_fetch_event.set()
-    
+
     if parsed_model_list:
         final_model_list = [m for m in parsed_model_list if m.get("id") not in excluded_model_ids]
         return {"object": "list", "data": final_model_list}

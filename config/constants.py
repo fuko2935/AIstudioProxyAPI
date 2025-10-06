@@ -11,9 +11,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- 模型相关常量 ---
-MODEL_NAME = os.environ.get('MODEL_NAME', 'AI-Studio_Proxy_API')
+MODEL_NAME = os.environ.get('MODEL_NAME', 'Qwen-Proxy-API')
 CHAT_COMPLETION_ID_PREFIX = os.environ.get('CHAT_COMPLETION_ID_PREFIX', 'chatcmpl-')
-DEFAULT_FALLBACK_MODEL_ID = os.environ.get('DEFAULT_FALLBACK_MODEL_ID', "no model list")
+DEFAULT_FALLBACK_MODEL_ID = os.environ.get('DEFAULT_FALLBACK_MODEL_ID', "qwen3-max")
 
 # --- 默认参数值 ---
 DEFAULT_TEMPERATURE = float(os.environ.get('DEFAULT_TEMPERATURE', '1.0'))
@@ -32,8 +32,8 @@ except (json.JSONDecodeError, TypeError):
     DEFAULT_STOP_SEQUENCES = ["用户:"]  # 回退到默认值
 
 # --- URL模式 ---
-AI_STUDIO_URL_PATTERN = os.environ.get('AI_STUDIO_URL_PATTERN', 'aistudio.google.com/')
-MODELS_ENDPOINT_URL_CONTAINS = os.environ.get('MODELS_ENDPOINT_URL_CONTAINS', "MakerSuiteService/ListModels")
+AI_STUDIO_URL_PATTERN = os.environ.get('AI_STUDIO_URL_PATTERN', 'chat.qwen.ai/')
+MODELS_ENDPOINT_URL_CONTAINS = os.environ.get('MODELS_ENDPOINT_URL_CONTAINS', "api/chat")
 
 # --- 输入标记符 ---
 USER_INPUT_START_MARKER_SERVER = os.environ.get('USER_INPUT_START_MARKER_SERVER', "__USER_INPUT_START__")
