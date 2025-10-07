@@ -41,24 +41,55 @@ class PageController:
             )
 
     async def _dismiss_auth_suggestions(self) -> None:
-        """Close 'Stay logged out' prompts that appear after responses."""
+        """Close login prompts or full-screen modals that block interactions."""
 
         button_texts = [
             "Stay logged out",
             "Continue without logging in",
+            "Continue as guest",
             "继续未登录",
+            "继续不登录",
             "暂不登录",
+            "先不登录",
         ]
+
         for text in button_texts:
             locator = self.page.locator(f"button:has-text('{text}')")
             try:
-                await locator.first.wait_for(state="visible", timeout=1500)
+                await locator.first.wait_for(state="visible", timeout=1200)
                 await locator.first.click()
                 await expect_async(locator).to_be_hidden(timeout=1500)
                 self.logger.info(f"[{self.req_id}] Dismissed auth prompt via button '{text}'.")
                 return
             except Exception:
                 continue
+
+        # Some variants render as generic modal overlays without the known button texts.
+        modal_root = self.page.locator("div.modal")
+        try:
+            if await modal_root.first.is_visible(timeout=500):
+                modal_buttons = modal_root.locator("button, a")
+                for index in range(await modal_buttons.count()):
+                    candidate = modal_buttons.nth(index)
+                    try:
+                        text = (await candidate.inner_text()).strip()
+                    except Exception:
+                        text = ""
+                    try:
+                        await candidate.click()
+                        await modal_root.first.wait_for(state="hidden", timeout=1500)
+                        self.logger.info(f"[{self.req_id}] Dismissed modal overlay via '{text or '<unnamed>'}'.")
+                        return
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+
+        # Fallback: try sending Escape to close any remaining overlay.
+        try:
+            await self.page.keyboard.press("Escape")
+        except Exception:
+            pass
 
     async def adjust_parameters(
         self,
@@ -124,10 +155,20 @@ class PageController:
 
         textarea = self.page.locator(PROMPT_TEXTAREA_SELECTOR)
         await expect_async(textarea).to_be_visible(timeout=WAIT_FOR_ELEMENT_TIMEOUT_MS)
+        try:
+            html_preview = await textarea.evaluate("el.outerHTML")
+            self.logger.debug(f"[{self.req_id}] Textarea HTML: {html_preview[:120]!r}")
+        except Exception:
+            pass
         await self._dismiss_auth_suggestions()
         await textarea.click()
-        await textarea.fill("")
-        await textarea.type(prompt, delay=10)
+        await textarea.fill(prompt)
+        await self._dismiss_auth_suggestions()
+        try:
+            current_value = await textarea.input_value()
+            self.logger.debug(f"[{self.req_id}] Textarea current value preview: {current_value[:60]!r}")
+        except Exception:
+            current_value = None
 
         response_locator = self.page.locator(RESPONSE_CONTAINER_SELECTOR)
         try:
@@ -144,6 +185,8 @@ class PageController:
             self.logger.warning(
                 f"[{self.req_id}] Submit button interaction failed ({click_err}); sending Enter key as fallback."
             )
+            await save_error_snapshot(f"submit_click_blocked_{self.req_id}")
+            await self._dismiss_auth_suggestions()
             await textarea.press("Enter")
 
         self._check_disconnect(check_client_disconnected, "after-submit")
