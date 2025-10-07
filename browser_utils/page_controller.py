@@ -91,6 +91,7 @@ class PageController:
         button_locator = self.page.locator(CLEAR_CHAT_BUTTON_SELECTOR)
         try:
             await expect_async(button_locator).to_be_visible(timeout=WAIT_FOR_ELEMENT_TIMEOUT_MS)
+            await self._dismiss_auth_suggestions()
             await button_locator.click(timeout=CLICK_TIMEOUT_MS)
             self.logger.info(f"[{self.req_id}] New chat button clicked.")
         except Exception as exc:
@@ -123,6 +124,7 @@ class PageController:
 
         textarea = self.page.locator(PROMPT_TEXTAREA_SELECTOR)
         await expect_async(textarea).to_be_visible(timeout=WAIT_FOR_ELEMENT_TIMEOUT_MS)
+        await self._dismiss_auth_suggestions()
         await textarea.click()
         await textarea.fill("")
         await textarea.type(prompt, delay=10)
