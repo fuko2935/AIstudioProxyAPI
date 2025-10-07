@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Callable, Optional
 
@@ -19,7 +20,7 @@ from config import (
     WAIT_FOR_ELEMENT_TIMEOUT_MS,
 )
 from models import ClientDisconnectedError
-from .operations import save_error_snapshot
+from .operations import save_error_snapshot, force_dismiss_auth_overlays
 
 
 class PageController:
@@ -43,53 +44,24 @@ class PageController:
     async def _dismiss_auth_suggestions(self) -> None:
         """Close login prompts or full-screen modals that block interactions."""
 
-        button_texts = [
-            "Stay logged out",
-            "Continue without logging in",
-            "Continue as guest",
-            "继续未登录",
-            "继续不登录",
-            "暂不登录",
-            "先不登录",
-        ]
-
-        for text in button_texts:
-            locator = self.page.locator(f"button:has-text('{text}')")
+        for attempt in range(3):
             try:
-                await locator.first.wait_for(state="visible", timeout=1200)
-                await locator.first.click()
-                await expect_async(locator).to_be_hidden(timeout=1500)
-                self.logger.info(f"[{self.req_id}] Dismissed auth prompt via button '{text}'.")
-                return
-            except Exception:
-                continue
+                dismissed = await force_dismiss_auth_overlays(
+                    self.page, logger=self.logger, req_id=self.req_id
+                )
+            except Exception as exc:
+                self.logger.debug(
+                    f"[{self.req_id}] Failed to dismiss auth overlays (attempt {attempt + 1}): {exc}"
+                )
+                break
 
-        # Some variants render as generic modal overlays without the known button texts.
-        modal_root = self.page.locator("div.modal")
-        try:
-            if await modal_root.first.is_visible(timeout=500):
-                modal_buttons = modal_root.locator("button, a")
-                for index in range(await modal_buttons.count()):
-                    candidate = modal_buttons.nth(index)
-                    try:
-                        text = (await candidate.inner_text()).strip()
-                    except Exception:
-                        text = ""
-                    try:
-                        await candidate.click()
-                        await modal_root.first.wait_for(state="hidden", timeout=1500)
-                        self.logger.info(f"[{self.req_id}] Dismissed modal overlay via '{text or '<unnamed>'}'.")
-                        return
-                    except Exception:
-                        continue
-        except Exception:
-            pass
+            if not dismissed:
+                if attempt == 0:
+                    self.logger.debug(f"[{self.req_id}] No auth overlay detected.")
+                break
 
-        # Fallback: try sending Escape to close any remaining overlay.
-        try:
-            await self.page.keyboard.press("Escape")
-        except Exception:
-            pass
+            # If something was removed, wait briefly before checking again.
+            await asyncio.sleep(0.1)
 
     async def adjust_parameters(
         self,

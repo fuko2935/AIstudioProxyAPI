@@ -123,6 +123,10 @@ AUTH_SAVE_TIMEOUT=30
 
 # 自动确认登录
 AUTO_CONFIRM_LOGIN=true
+
+# 启用 Qwen 登录支持（默认为访客模式）
+ENABLE_QWEN_LOGIN_SUPPORT=false
+# 设置为 true 可重新启用认证文件和交互式登录流程
 ```
 
 ### API 默认参数

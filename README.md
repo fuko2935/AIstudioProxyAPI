@@ -48,10 +48,15 @@ This project is generously sponsored by ZMTO. Visit their website: [https://zmto
 - **脚本注入功能 v3.0**: 使用 Playwright 原生网络拦截，支持油猴脚本动态挂载，100%可靠 🆕
 - **现代化 Web UI**: 内置测试界面，支持实时聊天、状态监控、分级 API 密钥管理
 - **图形界面启动器**: 提供功能丰富的 GUI 启动器，简化配置和进程管理
-- **灵活认证系统**: 支持可选的 API 密钥认证，完全兼容 OpenAI 标准的 Bearer token 格式
+- **灵活认证系统**: 支持可选的 API 密钥认证，完全兼容 OpenAI 标准的 Bearer token 格式；Qwen 登录流程默认关闭，直接以访客模式运行
 - **模块化架构**: 清晰的模块分离设计，api_utils/、browser_utils/、config/ 等独立模块
 - **统一配置管理**: 基于 `.env` 文件的统一配置方式，支持环境变量覆盖，Docker 兼容
 - **现代化开发工具**: Poetry 依赖管理 + Pyright 类型检查，提供优秀的开发体验
+
+### Qwen 登录支持（可选）
+
+当前 Qwen Chat 提供访客模式，无需保存或载入任何浏览器认证文件。项目因此默认禁用所有与登录相关的流程（`ENABLE_QWEN_LOGIN_SUPPORT=false`）。
+如后续 Qwen 改变策略，需要重新启用交互式登录，只需在环境变量中将 `ENABLE_QWEN_LOGIN_SUPPORT` 设置为 `true`，对应的 GUI/CLI 选项和认证文件管理功能会自动恢复。
 
 ## 系统架构
 

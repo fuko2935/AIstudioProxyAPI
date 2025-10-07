@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 import time
@@ -176,3 +177,133 @@ async def get_raw_text_content(response_element, previous_text: str, req_id: str
         return text or previous_text
     except Exception:
         return previous_text
+
+
+async def force_dismiss_auth_overlays(page, logger=None, req_id: str = "unknown") -> bool:
+    """
+    Close or remove Qwen authentication prompts that block interactions.
+
+    The Qwen UI frequently changes its guest modal variants. We try a few strategies:
+    1. Click known "continue without login" buttons if present.
+    2. Remove sign-up/login overlays by inspecting their text content.
+    3. Fall back to sending Escape to close any remaining dialogs.
+
+    Returns:
+        True if a blocking overlay was dismissed, otherwise False.
+    """
+
+    if not page or page.is_closed():
+        return False
+
+    button_texts = [
+        "Stay logged out",
+        "Continue without logging in",
+        "Continue as guest",
+        "继续未登录",
+        "继续不登录",
+        "暂不登录",
+        "先不登录",
+        "Not now",
+        "稍后再说",
+    ]
+
+    # Try button-based variants first (preferred to DOM removal).
+    for text in button_texts:
+        locator = page.locator(f"button:has-text('{text}')")
+        try:
+            await locator.first.wait_for(state="visible", timeout=1200)
+            await locator.first.click()
+            try:
+                await expect_async(locator).to_be_hidden(timeout=1500)
+            except Exception:
+                pass
+            if logger:
+                logger.info(f"[{req_id}] Dismissed auth prompt via button '{text}'.")
+            await asyncio.sleep(0.1)
+            return True
+        except Exception:
+            continue
+
+    # Some variants use anchor tags instead of buttons.
+    for text in button_texts:
+        locator = page.locator(f"a:has-text('{text}')")
+        try:
+            await locator.first.wait_for(state="visible", timeout=1200)
+            await locator.first.click()
+            if logger:
+                logger.info(f"[{req_id}] Dismissed auth prompt via link '{text}'.")
+            await asyncio.sleep(0.1)
+            return True
+        except Exception:
+            continue
+
+    # Fallback: look for modern sign-up overlays and remove them directly.
+    patterns = [
+        "sign up to qwen",
+        "log in to qwen",
+        "continue with google",
+        "continue with github",
+        "already have an account",
+        "powered by open webui",
+        "welcome back to qwen",
+        "登录",
+        "注册",
+    ]
+
+    try:
+        removed = await page.evaluate(
+            """(patternList) => {
+                const lowerPatterns = patternList.map(p => p.toLowerCase());
+                let removedAny = false;
+
+                const candidates = Array.from(
+                    document.querySelectorAll('div.fixed, div[role="dialog"], div[class*="shadow-qwen"]')
+                );
+
+                for (const node of candidates) {
+                    if (!node || typeof node.innerText !== 'string') {
+                        continue;
+                    }
+                    const text = node.innerText.toLowerCase();
+                    if (!text) {
+                        continue;
+                    }
+                    if (lowerPatterns.some(pattern => text.includes(pattern))) {
+                        node.remove();
+                        removedAny = true;
+                    }
+                }
+
+                if (removedAny) {
+                    const backdrops = document.querySelectorAll('div.fixed.inset-0');
+                    for (const backdrop of backdrops) {
+                        const text = (backdrop.innerText || '').trim();
+                        if (!text || lowerPatterns.some(pattern => text.includes(pattern))) {
+                            backdrop.remove();
+                        }
+                    }
+                    document.body.style.overflow = '';
+                }
+
+                return removedAny;
+            }""",
+            patterns,
+        )
+        if removed:
+            if logger:
+                logger.info(f"[{req_id}] Removed blocking auth overlay via DOM cleanup.")
+            await asyncio.sleep(0.05)
+            return True
+    except Exception:
+        pass
+
+    # Final attempt: send Escape twice to close any remaining modal.
+    try:
+        await page.keyboard.press("Escape")
+        await asyncio.sleep(0.05)
+        await page.keyboard.press("Escape")
+        await asyncio.sleep(0.05)
+    except Exception:
+        pass
+
+    return False

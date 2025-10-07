@@ -1,5 +1,7 @@
 # 首次运行与认证设置指南
 
+> **注意**：目前项目默认以 Qwen 访客模式运行（`ENABLE_QWEN_LOGIN_SUPPORT=false`），无需执行本指南中的任意步骤。只有在你明确启用了 `ENABLE_QWEN_LOGIN_SUPPORT=true` 并需要手动登录时，才需要参考以下说明。
+
 为了避免每次启动都手动登录 AI Studio，你需要先通过 [`launch_camoufox.py --debug`](../launch_camoufox.py) 模式或 [`gui_launcher.py`](../gui_launcher.py) 的有头模式运行一次来生成认证文件。
 
 ## 认证文件的重要性

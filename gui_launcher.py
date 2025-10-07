@@ -21,6 +21,8 @@ from dotenv import load_dotenv
 # 加载 .env 文件
 load_dotenv()
 
+from config import ENABLE_QWEN_LOGIN_SUPPORT
+
 # --- Configuration & Globals ---
 PYTHON_EXECUTABLE = sys.executable
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -221,6 +223,8 @@ LANG_TEXTS = {
     "manage_auth_files_btn": {"zh": "管理认证文件", "en": "Manage Auth Files"},
     "no_saved_auth_files": {"zh": "保存目录中没有认证文件", "en": "No authentication files in saved directory"},
     "auth_dirs_missing": {"zh": "认证目录不存在，请确保目录结构正确", "en": "Authentication directories missing, please ensure correct directory structure"},
+    "auth_disabled_title": {"zh": "登录功能已禁用", "en": "Login Disabled"},
+    "auth_disabled_message": {"zh": "Qwen 模式下无需登录，相关认证功能已禁用。", "en": "Qwen login support is disabled; authentication files are not used."},
     "confirm_kill_port_title": {"zh": "确认清理端口", "en": "Confirm Port Cleanup"},
     "confirm_kill_port_message": {"zh": "端口 {port} 被以下PID占用: {pids}。是否尝试终止这些进程?", "en": "Port {port} is in use by PID(s): {pids}. Try to terminate them?"},
     "port_cleared_success": {"zh": "端口 {port} 已成功清理", "en": "Port {port} has been cleared successfully"},
@@ -604,6 +608,10 @@ def _update_active_auth_display():
     if not active_auth_file_display_var or not root_widget:
         return
 
+    if not ENABLE_QWEN_LOGIN_SUPPORT:
+        active_auth_file_display_var.set(get_text("current_auth_file_none"))
+        return
+
     active_files = [f for f in os.listdir(ACTIVE_AUTH_DIR) if f.lower().endswith('.json')]
     if active_files:
         # 通常 active 目录只有一个文件，但以防万一，取第一个
@@ -622,6 +630,10 @@ def is_valid_auth_filename(filename: str) -> bool:
 
 
 def manage_auth_files_gui():
+    if not ENABLE_QWEN_LOGIN_SUPPORT:
+        messagebox.showinfo(get_text("auth_disabled_title"), get_text("auth_disabled_message"), parent=root_widget)
+        return
+
     if not os.path.exists(AUTH_PROFILES_DIR): # 检查根目录
         messagebox.showerror(get_text("error_title"), get_text("auth_dirs_missing"), parent=root_widget)
         return
@@ -1229,6 +1241,10 @@ def create_new_auth_file_gui(parent_window):
     """
     Handles the workflow for creating a new authentication file.
     """
+    if not ENABLE_QWEN_LOGIN_SUPPORT:
+        messagebox.showinfo(get_text("auth_disabled_title"), get_text("auth_disabled_message"), parent=parent_window)
+        return
+
     logger.info("Starting 'create new auth file' workflow.")
     # 1. Prompt for filename first
     filename = None
@@ -2274,23 +2290,26 @@ def build_gui(root: tk.Tk):
     btn_kill_custom_pid.pack(side=tk.LEFT, padx=5, pady=5)
     widgets_to_translate.append({"widget": btn_kill_custom_pid, "key": "kill_custom_pid_btn"})
 
-    # 认证文件管理 (移到中栏PID终止功能下方)
-    auth_section_middle = ttk.LabelFrame(middle_frame_container, text="")
-    auth_section_middle.grid(row=middle_current_row, column=0, sticky="ew", padx=2, pady=5)
-    widgets_to_translate.append({"widget": auth_section_middle, "key": "auth_files_management", "property": "text"})
-    middle_current_row += 1
-    btn_manage_auth_middle = ttk.Button(auth_section_middle, text="", command=manage_auth_files_gui)
-    btn_manage_auth_middle.pack(fill=tk.X, padx=5, pady=5)
-    widgets_to_translate.append({"widget": btn_manage_auth_middle, "key": "manage_auth_files_btn"})
+    if ENABLE_QWEN_LOGIN_SUPPORT:
+        # 认证文件管理 (移到中栏PID终止功能下方)
+        auth_section_middle = ttk.LabelFrame(middle_frame_container, text="")
+        auth_section_middle.grid(row=middle_current_row, column=0, sticky="ew", padx=2, pady=5)
+        widgets_to_translate.append({"widget": auth_section_middle, "key": "auth_files_management", "property": "text"})
+        middle_current_row += 1
+        btn_manage_auth_middle = ttk.Button(auth_section_middle, text="", command=manage_auth_files_gui)
+        btn_manage_auth_middle.pack(fill=tk.X, padx=5, pady=5)
+        widgets_to_translate.append({"widget": btn_manage_auth_middle, "key": "manage_auth_files_btn"})
 
-    # 显示当前认证文件
-    auth_display_frame = ttk.Frame(auth_section_middle)
-    auth_display_frame.pack(fill=tk.X, padx=5, pady=(0,5))
-    lbl_current_auth_static = ttk.Label(auth_display_frame, text="")
-    lbl_current_auth_static.pack(side=tk.LEFT)
-    widgets_to_translate.append({"widget": lbl_current_auth_static, "key": "current_auth_file_display_label"})
-    lbl_current_auth_dynamic = ttk.Label(auth_display_frame, textvariable=active_auth_file_display_var, wraplength=180)
-    lbl_current_auth_dynamic.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        # 显示当前认证文件
+        auth_display_frame = ttk.Frame(auth_section_middle)
+        auth_display_frame.pack(fill=tk.X, padx=5, pady=(0,5))
+        lbl_current_auth_static = ttk.Label(auth_display_frame, text="")
+        lbl_current_auth_static.pack(side=tk.LEFT)
+        widgets_to_translate.append({"widget": lbl_current_auth_static, "key": "current_auth_file_display_label"})
+        lbl_current_auth_dynamic = ttk.Label(auth_display_frame, textvariable=active_auth_file_display_var, wraplength=180)
+        lbl_current_auth_dynamic.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    else:
+        active_auth_file_display_var.set(get_text("current_auth_file_none"))
 
     # --- 右栏 Frame ---
     right_frame_container = ttk.Frame(main_paned_window, padding="5")

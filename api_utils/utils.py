@@ -267,7 +267,7 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
                 processed_system_message_indices.add(i)
             break
     
-    role_map_ui = {"user": "用户", "assistant": "助手", "system": "系统", "tool": "工具"}
+    role_map_ui = {"user": "", "assistant": "", "system": "", "tool": ""}
     turn_separator = "\n---\n"
     
     # 处理其他消息
@@ -283,8 +283,10 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
             combined_parts.append(turn_separator)
         
         role = msg.role or 'unknown'
-        role_prefix_ui = f"{role_map_ui.get(role, role.capitalize())}:\n"
-        current_turn_parts = [role_prefix_ui]
+        role_label = role_map_ui.get(role, "")
+        current_turn_parts = []
+        if role_label:
+            current_turn_parts.append(f"{role_label}:\n")
         
         content = msg.content or ''
         content_str = ""

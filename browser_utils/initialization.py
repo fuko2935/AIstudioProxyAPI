@@ -28,7 +28,11 @@ from config import (
     USER_INPUT_END_MARKER_SERVER,
     USER_INPUT_START_MARKER_SERVER,
 )
-from .operations import _handle_model_list_response, save_error_snapshot
+from .operations import (
+    _handle_model_list_response,
+    force_dismiss_auth_overlays,
+    save_error_snapshot,
+)
 
 logger = logging.getLogger("AIStudioProxyServer")
 
@@ -80,37 +84,17 @@ def _looks_like_login(url: str, target_host: str) -> bool:
     return any(keyword in lowered for keyword in ("login", "signin", "passport", "auth", "account"))
 
 
-async def _dismiss_guest_prompt(page: AsyncPage) -> None:
+async def _dismiss_guest_prompt(page: AsyncPage, req_id: str = "init") -> None:
     """Close the guest welcome modal that appears after sending a message."""
 
-    candidate_labels = [
-        "Stay logged out",
-        "Continue without logging in",
-        "Continue as guest",
-        "继续未登录",
-        "继续不登录",
-    ]
-
-    for label in candidate_labels:
-        locator = page.locator(f"button:has-text('{label}')")
-        try:
-            await locator.first.wait_for(state="visible", timeout=2000)
-            await locator.first.click()
-            await asyncio.sleep(0.2)
-            return
-        except PlaywrightTimeoutError:
-            continue
-
-    # Some variants render anchors instead of buttons
-    for label in candidate_labels:
-        locator = page.locator(f"a:has-text('{label}')")
-        try:
-            await locator.first.wait_for(state="visible", timeout=2000)
-            await locator.first.click()
-            await asyncio.sleep(0.2)
-            return
-        except PlaywrightTimeoutError:
-            continue
+    try:
+        dismissed = await force_dismiss_auth_overlays(
+            page, logger=logger, req_id=req_id
+        )
+        if dismissed:
+            await asyncio.sleep(0.1)
+    except Exception as exc:
+        logger.debug(f"[{req_id}] Failed to dismiss guest prompt: {exc}")
 
 
 
@@ -315,7 +299,7 @@ async def _wait_for_chat_ready(
                 "If Qwen now requires authentication, enable it via ENABLE_QWEN_LOGIN_SUPPORT=true."
             )
 
-    await _dismiss_guest_prompt(page)
+    await _dismiss_guest_prompt(page, req_id="init")
     await _stop_active_generation(page)
 
     try:
