@@ -1,0 +1,182 @@
+poetry run python -X utf8 launch_camoufox.py --debug --stream-port 0
+2025-10-06 23:37:38,065 - INFO - ============================== Camoufox启动器日志系统已初始化 ==============================
+2025-10-06 23:37:38,066 - INFO - 日志级别设置为: INFO
+2025-10-06 23:37:38,066 - INFO - 日志文件路径: C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\logs\launch_app.log
+2025-10-06 23:37:38,068 - INFO - 根据当前系统 'Windows'，Camoufox OS 模拟已自动设置为: windows
+2025-10-06 23:37:38,069 - INFO - 🚀 Camoufox 启动器开始运行 🚀
+2025-10-06 23:37:38,070 - INFO - =================================================
+2025-10-06 23:37:38,070 - INFO - 正在检查并确保认证文件目录存在...
+2025-10-06 23:37:38,071 - INFO -   ✓ 活动认证目录就绪: C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\auth_profiles\active
+2025-10-06 23:37:38,071 - INFO -   ✓ 已保存认证目录就绪: C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\auth_profiles\saved
+2025-10-06 23:37:38,071 - INFO - --- 步骤 1: 检查依赖项 ---
+2025-10-06 23:37:38,071 - INFO - 正在检查 Python 模块:
+2025-10-06 23:37:38,072 - INFO -   ✓ 模块 'camoufox' 已找到。
+2025-10-06 23:37:38,072 - INFO -   ✓ 成功从 'server.py' 导入 'app' 对象。
+2025-10-06 23:37:38,072 - INFO - ✅ 所有启动器依赖项检查通过。
+2025-10-06 23:37:38,072 - INFO - =================================================
+2025-10-06 23:37:38,072 - INFO - 最终选择的启动模式: debug模式
+2025-10-06 23:37:38,072 - INFO - -------------------------------------------------
+  是否要创建并保存新的认证文件? (y/n; 默认: n, 15s超时): n
+2025-10-06 23:37:39,633 - INFO -   好的，将不创建新的认证文件。
+2025-10-06 23:37:39,633 - INFO - --- 步骤 2: 检查 FastAPI 服务器目标端口 (2048) 是否被占用 ---
+2025-10-06 23:37:39,634 - INFO -   ✅ 端口 2048 (主机 0.0.0.0) 当前可用。
+2025-10-06 23:37:39,634 - INFO - --- 步骤 3: 准备并启动 Camoufox 内部进程 ---
+2025-10-06 23:37:39,634 - INFO -   调试模式: 扫描全目录并提示用户从可用认证文件中选择...
+------------------------------------------------------------
+   找到以下可用的认证文件:
+     1: active/qwen.json
+     2: saved/qwen.json
+     N: 不加载任何文件 (使用浏览器当前状态)
+------------------------------------------------------------
+   请选择要加载的认证文件编号 (输入 N 或直接回车则不加载, 30s超时): 1
+2025-10-06 23:37:43,626 - INFO -    已选择加载认证文件: active/qwen.json
+   已选择加载: active/qwen.json
+------------------------------------------------------------
+2025-10-06 23:37:43,626 - INFO -   将执行 Camoufox 内部启动命令: C:\Users\mansi\AppData\Local\pypoetry\Cache\virtualenvs\aistudioproxyapi-AmwmgP_5-py3.12\Scripts\python.exe -u C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\launch_camoufox.py --internal-launch-mode debug --internal-auth-file C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\auth_profiles\active\qwen.json --internal-camoufox-os windows --internal-camoufox-port 9222
+2025-10-06 23:37:43,630 - INFO -   Camoufox 内部进程已启动 (PID: 93380)。正在等待 WebSocket 端点输出 (最长 45 秒)...
+2025-10-06 23:37:45,134 - INFO - [InternalCamoufox-stdout-PID:93380]: --- [内部Camoufox启动] 代理配置: 无代理 ---
+2025-10-06 23:37:45,134 - INFO - [InternalCamoufox-stdout-PID:93380]: --- [内部Camoufox启动] 模式: debug, 认证文件: qwen.json, Camoufox端口: 9222, 代理: 无, 模拟OS: windows ---
+2025-10-06 23:37:45,134 - INFO - [InternalCamoufox-stdout-PID:93380]: --- [内部Camoufox启动] 正在调用 camoufox.server.launch_server ... ---
+2025-10-06 23:37:45,135 - INFO - [InternalCamoufox-stdout-PID:93380]:   传递给 launch_server 的参数: {'port': 9222, 'addons': [], 'exclude_addons': [<DefaultAddons.UBO: 'https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi'>], 'window': (1440, 900), 'storage_state': 'C:\\Users\\mansi\\new\\gorursunuzsiz\\AIstudioProxyAPI\\auth_profiles\\active\\qwen.json', 'os': 'windows'}
+2025-10-06 23:37:45,715 - INFO - [InternalCamoufox-stdout-PID:93380]: Launching server...
+2025-10-06 23:37:49,165 - INFO - [InternalCamoufox-stdout-PID:93380]: Server launched: 3.451s
+2025-10-06 23:37:49,165 - INFO - [InternalCamoufox-stdout-PID:93380]: Websocket endpoint: ws://localhost:9222/324a9b936b146bf616b2a4f54ac170a7
+2025-10-06 23:37:49,165 - INFO -   ✅ 成功从 Camoufox 内部进程捕获到 WebSocket 端点: ws://localhost:9222/324a9b936b146bf616b2...
+2025-10-06 23:37:51,182 - INFO -   Helper 模式已通过 --helper='' 禁用。
+2025-10-06 23:37:51,182 - INFO - --- 步骤 4: 设置环境变量并准备启动 FastAPI/Uvicorn 服务器 ---
+2025-10-06 23:37:51,183 - INFO -   为 server.app 设置的环境变量:
+2025-10-06 23:37:51,183 - INFO -     CAMOUFOX_WS_ENDPOINT=ws://localhost:9222/324a9b936b146bf616b2...
+2025-10-06 23:37:51,183 - INFO -     LAUNCH_MODE=debug
+2025-10-06 23:37:51,184 - INFO -     SERVER_LOG_LEVEL=DEBUG
+2025-10-06 23:37:51,184 - INFO -     SERVER_REDIRECT_PRINT=false
+2025-10-06 23:37:51,184 - INFO -     DEBUG_LOGS_ENABLED=false
+2025-10-06 23:37:51,184 - INFO -     TRACE_LOGS_ENABLED=false
+2025-10-06 23:37:51,184 - INFO -     ACTIVE_AUTH_JSON_PATH=qwen.json
+2025-10-06 23:37:51,185 - INFO -     AUTO_SAVE_AUTH=false
+2025-10-06 23:37:51,185 - INFO -     SAVE_AUTH_FILENAME=
+2025-10-06 23:37:51,185 - INFO -     AUTH_SAVE_TIMEOUT=30
+2025-10-06 23:37:51,185 - INFO -     SERVER_PORT_INFO=2048
+2025-10-06 23:37:51,185 - INFO -     HOST_OS_FOR_SHORTCUT=Windows
+2025-10-06 23:37:51,185 - INFO -     HELPER_ENDPOINT= (未设置)
+2025-10-06 23:37:51,186 - INFO -     HELPER_SAPISID= (未设置)
+2025-10-06 23:37:51,186 - INFO -     STREAM_PORT=0
+2025-10-06 23:37:51,186 - INFO -     UNIFIED_PROXY_CONFIG= (未设置)
+2025-10-06 23:37:51,186 - INFO - --- 步骤 5: 启动集成的 FastAPI 服务器 (监听端口: 2048) ---
+--- server.py 的 print 输出未被重定向到日志系统 (将使用原始 stdout/stderr) ---
+2025-10-06 23:37:51,224 - INFO [SERVER] - ===== AIStudioProxyServer 日志系统已在 lifespan 中初始化 =====
+2025-10-06 23:37:51,224 - INFO [SERVER] - 日志级别设置为: DEBUG
+2025-10-06 23:37:51,224 - INFO [SERVER] - 日志文件路径: C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\config\..\logs\app.log
+2025-10-06 23:37:51,224 - INFO [SERVER] - 控制台日志处理器已添加。
+2025-10-06 23:37:51,225 - INFO [SERVER] - Print 重定向 (由 SERVER_REDIRECT_PRINT 环境变量控制): 禁用
+2025-10-06 23:37:51,225 - INFO [SERVER] - API keys and global locks initialized.
+2025-10-06 23:37:51,226 - INFO [SERVER] - No proxy configured for Playwright.
+C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\api_utils\app.py:207: RuntimeWarning: coroutine 'load_excluded_models' was never awaited
+  load_excluded_models(EXCLUDED_MODELS_FILENAME)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+2025-10-06 23:37:51,229 - INFO [SERVER] - Starting AI Studio Proxy Server...
+2025-10-06 23:37:51,229 - INFO [SERVER] - Starting Playwright...
+2025-10-06 23:37:51,961 - INFO [SERVER] - Playwright started.
+2025-10-06 23:37:51,961 - INFO [SERVER] - Connecting to browser at: ws://localhost:9222/324a9b936b146bf616b2a4f54ac170a7
+2025-10-06 23:37:52,028 - INFO [SERVER] - Connected to browser: 135.0.1-beta.24
+2025-10-06 23:37:52,028 - INFO [SERVER] - Initialising Qwen chat page.
+2025-10-06 23:37:52,028 - INFO [SERVER] - Detected launch mode: debug
+2025-10-06 23:37:52,029 - INFO [SERVER] - Using storage state: C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\auth_profiles\active\qwen.json
+2025-10-06 23:37:58,674 - INFO [SERVER] - Navigating to https://chat.qwen.ai/
+2025-10-06 23:38:32,404 - ERROR [SERVER] - Failed to prepare the Qwen chat page: Qwen chat input did not become visible in time.
+Traceback (most recent call last):
+  File "C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\browser_utils\initialization.py", line 236, in _wait_for_chat_ready
+    await expect_async(page.locator("#chat-input")).to_be_visible(timeout=20000)
+  File "C:\Users\mansi\AppData\Local\pypoetry\Cache\virtualenvs\aistudioproxyapi-AmwmgP_5-py3.12\Lib\site-packages\playwright\async_api\_generated.py", line 20190, in to_be_visible
+    await self._impl_obj.to_be_visible(visible=visible, timeout=timeout)
+  File "C:\Users\mansi\AppData\Local\pypoetry\Cache\virtualenvs\aistudioproxyapi-AmwmgP_5-py3.12\Lib\site-packages\playwright\_impl\_assertions.py", line 716, in to_be_visible
+    await self._expect_impl(
+  File "C:\Users\mansi\AppData\Local\pypoetry\Cache\virtualenvs\aistudioproxyapi-AmwmgP_5-py3.12\Lib\site-packages\playwright\_impl\_assertions.py", line 74, in _expect_impl
+    raise AssertionError(
+AssertionError: Locator expected to be visible
+Actual value: <element(s) not found>
+Call log:
+  - LocatorAssertions.to_be_visible with timeout 20000ms
+  - waiting for locator('#chat-input')
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\browser_utils\initialization.py", line 294, in _initialize_page_logic
+    await _wait_for_chat_ready(page, loop, target_host)
+  File "C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\browser_utils\initialization.py", line 238, in _wait_for_chat_ready
+    raise RuntimeError("Qwen chat input did not become visible in time.") from exc
+RuntimeError: Qwen chat input did not become visible in time.
+2025-10-06 23:38:32,406 - WARNING [SERVER] - [init_failure] Unable to capture snapshot – page unavailable.
+2025-10-06 23:38:32,445 - ERROR [SERVER] - Page initialization failed.
+2025-10-06 23:38:32,445 - CRITICAL [SERVER] - Application startup failed: Failed to initialize browser/page, worker not started.
+Traceback (most recent call last):
+  File "C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\api_utils\app.py", line 221, in lifespan
+    raise RuntimeError("Failed to initialize browser/page, worker not started.")
+RuntimeError: Failed to initialize browser/page, worker not started.
+2025-10-06 23:38:32,446 - INFO [SERVER] - Shutting down resources...
+2025-10-06 23:38:32,454 - INFO [SERVER] - Browser connection closed.
+2025-10-06 23:38:32,471 - INFO [SERVER] - Playwright stopped.
+2025-10-06 23:38:32,472 - INFO [SERVER] - Shutting down server...
+2025-10-06 23:38:32,472 - INFO [SERVER] - Shutting down resources...
+2025-10-06 23:38:32,472 - INFO [SERVER] - Playwright stopped.
+已恢复 server.py 的原始 stdout 和 stderr 流。
+已恢复 server.py 的原始 stdout 和 stderr 流。
+2025-10-06 23:38:32,472 - INFO [SERVER] - Server shutdown complete.
+Traceback (most recent call last):
+  File "C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\api_utils\app.py", line 221, in lifespan
+    raise RuntimeError("Failed to initialize browser/page, worker not started.")
+RuntimeError: Failed to initialize browser/page, worker not started.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\mansi\AppData\Local\pypoetry\Cache\virtualenvs\aistudioproxyapi-AmwmgP_5-py3.12\Lib\site-packages\starlette\routing.py", line 692, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mansi\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI\api_utils\app.py", line 229, in lifespan
+    raise RuntimeError(f"Application startup failed: {e}") from e
+RuntimeError: Application startup failed: Failed to initialize browser/page, worker not started.
+
+Application startup failed. Exiting.
+2025-10-06 23:38:32,476 - INFO - Uvicorn 或其子系统通过 sys.exit(3) 退出。
+2025-10-06 23:38:32,476 - INFO - 🚀 Camoufox 启动器主逻辑执行完毕 🚀
+2025-10-06 23:38:32,477 - INFO - --- 开始执行清理程序 (launch_camoufox.py) ---
+2025-10-06 23:38:32,477 - INFO - 正在终止 Camoufox 内部子进程 (PID: 93380)...
+2025-10-06 23:38:32,477 - INFO - 进程树 (PID: 93380) 发送终止请求
+SUCCESS: Sent termination signal to process with PID 15340, child of PID 90236.
+ERROR: The process with PID 89300 (child process of PID 90236) could not be terminated.
+Reason: This process can only be terminated forcefully (with /F option).
+SUCCESS: Sent termination signal to process with PID 92196, child of PID 90236.
+ERROR: The process with PID 49044 (child process of PID 90236) could not be terminated.
+Reason: This process can only be terminated forcefully (with /F option).
+ERROR: The process with PID 92456 (child process of PID 90236) could not be terminated.
+Reason: This process can only be terminated forcefully (with /F option).
+ERROR: The process with PID 90236 (child process of PID 91444) could not be terminated.
+Reason: One or more child processes of this process were still running.
+ERROR: The process with PID 91444 (child process of PID 81020) could not be terminated.
+Reason: One or more child processes of this process were still running.
+ERROR: The process with PID 81020 (child process of PID 94156) could not be terminated.
+Reason: One or more child processes of this process were still running.
+ERROR: The process with PID 94156 (child process of PID 93380) could not be terminated.
+Reason: One or more child processes of this process were still running.
+ERROR: The process with PID 93380 (child process of PID 43432) could not be terminated.
+Reason: One or more child processes of this process were still running.
+2025-10-06 23:38:38,292 - WARNING -   ⚠️ Camoufox (PID: 93380) SIGTERM 超时。正在发送 SIGKILL 强制终止...
+2025-10-06 23:38:38,292 - INFO -   强制杀死 Camoufox 进程树 (PID: 93380)
+SUCCESS: The process with PID 15340 (child process of PID 90236) has been terminated.
+SUCCESS: The process with PID 89300 (child process of PID 90236) has been terminated.
+SUCCESS: The process with PID 92196 (child process of PID 90236) has been terminated.
+SUCCESS: The process with PID 49044 (child process of PID 90236) has been terminated.
+SUCCESS: The process with PID 92456 (child process of PID 90236) has been terminated.
+SUCCESS: The process with PID 90236 (child process of PID 91444) has been terminated.
+SUCCESS: The process with PID 91444 (child process of PID 81020) has been terminated.
+SUCCESS: The process with PID 81020 (child process of PID 94156) has been terminated.
+SUCCESS: The process with PID 94156 (child process of PID 93380) has been terminated.
+SUCCESS: The process with PID 93380 (child process of PID 43432) has been terminated.
+2025-10-06 23:38:39,083 - INFO -   ✓ Camoufox (PID: 93380) 已通过 SIGKILL 成功终止。
+2025-10-06 23:38:39,084 - INFO - --- 清理程序执行完毕 (launch_camoufox.py) ---
+PS C:\Users\mansi\new\gorursunuzsiz\AIstudioProxyAPI>

@@ -7,33 +7,45 @@ import re
 import time
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from playwright.async_api import expect as expect_async
 
-from config import RESPONSE_CONTAINER_SELECTOR, RESPONSE_TEXT_SELECTOR
+from config import (
+    RESPONSE_CONTAINER_SELECTOR,
+    RESPONSE_TEXT_SELECTOR,
+    DEFAULT_QWEN_MODELS as CONFIG_DEFAULT_QWEN_MODELS,
+)
 
 logger = logging.getLogger("AIStudioProxyServer")
 
+MODEL_LIST_REFRESH_TTL_SECONDS = int(os.environ.get("MODEL_LIST_REFRESH_TTL_SECONDS", "300"))
 
-DEFAULT_QWEN_MODELS = [
-    {
-        "id": "qwen3-max",
-        "object": "model",
-        "created": int(time.time()),
-        "owned_by": "qwen",
-        "display_name": "Qwen3-Max",
-        "description": "The most capable flagship Qwen model.",
-    },
-    {
-        "id": "qwen3-vl-235b",
-        "object": "model",
-        "created": int(time.time()),
-        "owned_by": "qwen",
-        "display_name": "Qwen3-VL-235B",
-        "description": "Large vision-language model.",
-    },
-]
+
+def _build_default_models() -> List[Dict[str, Any]]:
+    """Produce a timestamped copy of the fallback model catalog."""
+
+    now = int(time.time())
+    defaults: List[Dict[str, Any]] = []
+    for entry in CONFIG_DEFAULT_QWEN_MODELS:
+        enriched = dict(entry)
+        created_value = enriched.get("created")
+        if not isinstance(created_value, int) or created_value <= 0:
+            enriched["created"] = now
+        enriched.setdefault("object", "model")
+        enriched.setdefault("owned_by", "qwen")
+        defaults.append(enriched)
+    return defaults
+
+
+DEFAULT_QWEN_MODELS = _build_default_models()
+
+
+def get_default_qwen_models() -> List[Dict[str, Any]]:
+    """Return a fresh copy of the fallback model definitions."""
+
+    # Regenerate to ensure timestamps remain recent when the fallback path is used repeatedly.
+    return _build_default_models()
 
 
 async def save_error_snapshot(tag: str) -> None:
@@ -72,19 +84,35 @@ async def _handle_model_list_response(response: Any):
 
     import server
 
-    models = []
+    now = time.time()
+    last_refresh = getattr(server, "model_list_last_refreshed", 0.0)
+    refresh_in_progress = getattr(server, "model_list_refresh_in_progress", False)
+    existing_models = getattr(server, "parsed_model_list", []) or []
+
+    if existing_models and (now - last_refresh) < MODEL_LIST_REFRESH_TTL_SECONDS:
+        return existing_models
+
+    if refresh_in_progress:
+        return existing_models or get_default_qwen_models()
+
+    models: List[Any] = []
     page = getattr(server, "page_instance", None)
 
     if page and not page.is_closed():
         try:
             from .model_management import refresh_model_catalog
 
+            setattr(server, "model_list_refresh_in_progress", True)
             models = await refresh_model_catalog(page, req_id="model-response")
+            if models:
+                server.model_list_last_refreshed = time.time()
         except Exception as exc:
             logger.error(f"[model-response] Failed to collect models from UI: {exc}")
+        finally:
+            setattr(server, "model_list_refresh_in_progress", False)
 
     if not models:
-        models = DEFAULT_QWEN_MODELS
+        models = existing_models or get_default_qwen_models()
 
     server.global_model_list_raw_json = models
     server.parsed_model_list = models
@@ -148,4 +176,3 @@ async def get_raw_text_content(response_element, previous_text: str, req_id: str
         return text or previous_text
     except Exception:
         return previous_text
-

@@ -1,0 +1,125 @@
+
+
+### Yol Haritası: Qwen Entegrasyonunu Test Etme ve Kullanma
+
+#### Adım 0: Mevcut Durum Analizi (Nerede Olduğumuzu Anlayalım)
+
+Öncelikle, projenizin zaten Qwen'e uyarlandığını gösteren kanıtlara bakalım. Bu sayede neyin zaten yapıldığını ve neye odaklanmamız gerektiğini daha iyi anlayabiliriz:
+
+1.  **Hedef URL Değişmiş:** `config/constants.py` dosyasında, `AI_STUDIO_URL_PATTERN` değişkeninin varsayılan değeri `'chat.qwen.ai/'` olarak ayarlanmış. Bu, Playwright'in artık Google AI Studio yerine Qwen'in sohbet sayfasını açacağı anlamına gelir.
+2.  **CSS Seçicileri (Selectors) Güncellenmiş:** `config/selectors.py` dosyasındaki CSS seçicileri (`PROMPT_TEXTAREA_SELECTOR`, `SUBMIT_BUTTON_SELECTOR` vb.) Qwen'in web sitesinin HTML yapısına uyacak şekilde tamamen yenilenmiş. Bu, projenin en kritik ve en zor kısmının tamamlandığını gösteriyor.
+3.  **Model Yönetimi Qwen'e Özel:** `browser_utils/model_management.py` içerisindeki `refresh_model_catalog` gibi fonksiyonlar, Qwen arayüzündeki model seçici menüden modelleri okuyacak şekilde yazılmış.
+4.  **Dokümantasyon Güncellenmiş:** `README.md` ve diğer dökümanlarda projenin artık Qwen Chat'e odaklandığı açıkça belirtiliyor.
+
+**Özetle:** Projeniz, Qwen entegrasyonu için "hazır" durumda. Şimdi yapmamız gereken, bu entegrasyonu çalıştırmak ve test etmek.
+
+---
+
+### Adım 1: Kurulum ve Bağımlılıkların Doğrulanması
+
+Her şeyin doğru bir şekilde kurulduğundan emin olalım. Proje, `requirements.txt` yerine modern bir bağımlılık yönetim aracı olan **Poetry** kullanıyor.
+
+1.  **Gerekli Araçları Yükleyin:** Eğer sisteminizde yoksa, [Poetry](https://python-poetry.org/docs/#installation) kurulumunu yapın.
+2.  **Bağımlılıkları Yükleyin:** Projenin ana dizininde bir terminal açın ve aşağıdaki komutu çalıştırın. Bu komut, `pyproject.toml` dosyasına göre gerekli tüm kütüphaneleri (FastAPI, Playwright, Camoufox vb.) sizin için kuracaktır.
+    ```bash
+    poetry install
+    ```
+3.  **Camoufox Tarayıcısını İndirin:** Bu, projenin otomasyon için kullandığı özel Firefox tarayıcısıdır.
+    ```bash
+    poetry run camoufox fetch
+    ```
+4.  **Playwright Bağımlılıklarını Kurun:** Camoufox'un ihtiyaç duyduğu sistem kütüphanelerini kurar.
+    ```bash
+    poetry run playwright install-deps firefox
+    ```
+
+---
+
+### Adım 2: Yapılandırma (`.env` Dosyası)
+
+Proje, tüm ayarları `.env` dosyasından okur. Bu, her seferinde komut satırına uzun parametreler yazmanızı engeller.
+
+1.  **Yapılandırma Dosyasını Oluşturun:**
+    ```bash
+    cp .env.example .env
+    ```
+2.  **Yapılandırmayı Gözden Geçirin (Önemli):**
+    `nano .env` veya başka bir metin düzenleyici ile `.env` dosyasını açın. Özellikle aşağıdaki ayarları kontrol edin:
+    *   `STREAM_PORT`: Akış (streaming) proxy'sinin çalışacağı port. `3120` olarak kalabilir. Eğer sorun yaşarsanız `0` yaparak devre dışı bırakabilirsiniz.
+    *   `UNIFIED_PROXY_CONFIG`: Eğer internete bir proxy üzerinden çıkıyorsanız (örneğin, şirket ağı, VPN vb.), proxy adresinizi buraya yazın (örn: `http://127.0.0.1:7890`). Eğer proxy kullanmıyorsanız bu satırı boş bırakın veya silin.
+    *   `SERVER_LOG_LEVEL`: Sorunları anlamak için başlangıçta `DEBUG` olarak ayarlayabilirsiniz. Normal kullanımda `INFO` yeterlidir.
+
+---
+
+### Adım 3: İlk Kimlik Doğrulama (En Kritik Adım)
+
+Projenin arkaplanda (headless) çalışabilmesi için önce bir kez tarayıcı arayüzü ile giriş yapıp oturum bilgilerinizi kaydetmeniz gerekir.
+
+1.  **Debug Modunda Başlatın:** Aşağıdaki komut, arayüzü olan bir Camoufox tarayıcısı başlatacaktır.
+    ```bash
+    poetry run python launch_camoufox.py --debug
+    ```
+2.  **Giriş Yapın:**
+    *   Otomatik olarak bir tarayıcı penceresi açılacak ve `chat.qwen.ai` sitesine gidecektir.
+    *   Bu tarayıcı penceresinde, Qwen (Alibaba Cloud) hesabınızla **giriş yapın**.
+    *   Giriş yaptıktan sonra sohbet arayüzünün tamamen yüklendiğinden emin olun.
+3.  **Oturumu Kaydedin:**
+    *   Terminalde sizden oturumu kaydetmek için bir dosya adı girmeniz istenecektir. Bir isim yazıp (örn: `my-qwen-auth`) Enter'a basın.
+    *   Bu işlem, `auth_profiles/saved/` klasörü içine `my-qwen-auth.json` gibi bir dosya oluşturacaktır.
+4.  **Oturumu Aktif Hale Getirin:**
+    *   Oluşturulan bu `.json` dosyasını `auth_profiles/saved/` klasöründen `auth_profiles/active/` klasörüne **taşıyın veya kopyalayın**.
+    *   **Önemli:** `active` klasöründe sadece bu tek `.json` dosyası bulunmalıdır.
+5.  **Servisi Durdurun:** Terminalde `Ctrl+C` tuşlarına basarak debug modundaki servisi durdurun.
+
+Bu adımı başarıyla tamamladıysanız, artık projeyi arkaplanda çalıştırmaya hazırsınız.
+
+---
+
+### Adım 4: Normal (Headless) Çalıştırma ve Test Etme
+
+Artık kimlik doğrulama dosyanız olduğuna göre, servisi arkaplanda (tarayıcı arayüzü olmadan) çalıştırabilirsiniz.
+
+1.  **Headless Modda Başlatın:**
+    ```bash
+    poetry run python launch_camoufox.py --headless
+    ```
+    Terminalde servis loglarını göreceksiniz ve `Uvicorn running on http://0.0.0.0:2048` gibi bir mesajla servisin başladığını teyit edebilirsiniz.
+
+2.  **Test Edin:**
+    *   **Web Arayüzü ile Test:** Tarayıcınızda `http://127.0.0.1:2048/` adresini açın. Karşınıza gelen sohbet arayüzünden bir mesaj göndererek test edebilirsiniz.
+    *   **API İstemcisi ile Test (`curl`):** Yeni bir terminal açın ve aşağıdaki `curl` komutunu çalıştırarak API'yi test edin.
+        ```bash
+        curl -X POST http://127.0.0.1:2048/v1/chat/completions \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer any-key-will-work" \
+          -d '{
+            "model": "qwen3-max",
+            "messages": [
+              {"role": "user", "content": "Merhaba! Kendini tanıtır mısın?"}
+            ],
+            "stream": false
+          }'
+        ```
+    Bu komutun çıktısında Qwen'den bir cevap görmelisiniz.
+
+---
+
+### Adım 5: Sorun Giderme (Eğer İşler Yolunda Gitmezse)
+
+1.  **Logları Kontrol Edin:**
+    *   `logs/app.log`: Ana sunucu (FastAPI) logları burada bulunur. Hataların çoğu bu dosyada yazar.
+    *   `logs/launch_app.log`: Başlatıcı betiğin loglarıdır. Tarayıcı başlatma hataları burada olabilir.
+    *   `.env` dosyasında `SERVER_LOG_LEVEL=DEBUG` yaparak daha detaylı loglar alabilirsiniz.
+
+2.  **Hata Anlık Görüntüleri:**
+    *   Playwright bir hata ile karşılaştığında, `errors_py/` klasörü içine sayfanın ekran görüntüsünü ve HTML kodunu kaydeder. Bir hata alırsanız bu klasörü kontrol etmek sorunun kaynağını (örn: Qwen arayüzündeki bir değişiklik, beklenmedik bir pencere vb.) anlamanıza çok yardımcı olur.
+
+3.  **Kimlik Doğrulama Sorunları:**
+    *   En sık karşılaşılan sorun, `auth_profiles/active/` içindeki `.json` dosyasının süresinin dolmasıdır. Eğer headless modda sürekli giriş sayfasına yönlendirme gibi hatalar alıyorsanız, **Adım 3**'ü tekrarlayarak yeni bir kimlik doğrulama dosyası oluşturun.
+
+4.  **GUI Başlatıcıyı Kullanın:**
+    *   Komut satırı karmaşık geliyorsa, `gui_launcher.py`'ı deneyebilirsiniz. Bu arayüz, süreci yönetmenize yardımcı olur.
+        ```bash
+        poetry run python gui_launcher.py
+        ```
+karşılaşırsanız, terminaldeki hata mesajını paylaşmaktan çekinmeyin.

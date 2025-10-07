@@ -21,21 +21,37 @@ DEFAULT_FALLBACK_MODEL_ID = os.environ.get('DEFAULT_FALLBACK_MODEL_ID', "qwen3-m
 # --- 默认模型回退列表 ---
 DEFAULT_QWEN_MODELS = [
     {
-        "id": "qwen-plus",
+        "id": "qwen3-max",
         "object": "model",
         "created": _FALLBACK_CREATED_TS,
-        "owned_by": "fallback-qwen",
-        "display_name": "Qwen Plus",
-        "description": "Fallback Qwen model definition used when the live catalog is unavailable."
+        "owned_by": "qwen",
+        "display_name": "Qwen3-Max",
+        "description": "Flagship Qwen3 model for general reasoning and complex problem solving.",
     },
     {
-        "id": "qwen-max",
+        "id": "qwen3-vl-235b",
         "object": "model",
         "created": _FALLBACK_CREATED_TS,
-        "owned_by": "fallback-qwen",
-        "display_name": "Qwen Max",
-        "description": "Fallback Qwen Max model definition used when the live catalog is unavailable."
-    }
+        "owned_by": "qwen",
+        "display_name": "Qwen3-VL-235B",
+        "description": "Large multimodal model capable of advanced vision-language understanding.",
+    },
+    {
+        "id": "qwq-32b",
+        "object": "model",
+        "created": _FALLBACK_CREATED_TS,
+        "owned_by": "qwen",
+        "display_name": "QwQ-32B",
+        "description": "Preview reasoning specialist derived from the Qwen QwQ series.",
+    },
+    {
+        "id": "qwen2.5-max",
+        "object": "model",
+        "created": _FALLBACK_CREATED_TS,
+        "owned_by": "qwen",
+        "display_name": "Qwen2.5-Max",
+        "description": "High capacity Qwen2.5 model retained for backwards compatibility.",
+    },
 ]
 
 # --- 默认参数值 ---

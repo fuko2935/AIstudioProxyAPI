@@ -40,6 +40,26 @@ class PageController:
                 f"[{self.req_id}] Client disconnected at stage: {stage}"
             )
 
+    async def _dismiss_auth_suggestions(self) -> None:
+        """Close 'Stay logged out' prompts that appear after responses."""
+
+        button_texts = [
+            "Stay logged out",
+            "Continue without logging in",
+            "继续未登录",
+            "暂不登录",
+        ]
+        for text in button_texts:
+            locator = self.page.locator(f"button:has-text('{text}')")
+            try:
+                await locator.first.wait_for(state="visible", timeout=1500)
+                await locator.first.click()
+                await expect_async(locator).to_be_hidden(timeout=1500)
+                self.logger.info(f"[{self.req_id}] Dismissed auth prompt via button '{text}'.")
+                return
+            except Exception:
+                continue
+
     async def adjust_parameters(
         self,
         request_params: dict,
@@ -53,7 +73,7 @@ class PageController:
 
         self.logger.info(
             f"[{self.req_id}] Qwen web UI does not expose tunable parameters – skipping."
-        )
+            )
 
     # ------------------------------------------------------------------
     async def clear_chat_history(self, check_client_disconnected: Callable) -> None:
@@ -167,6 +187,9 @@ class PageController:
         except Exception:
             pass
 
+        # Close post-response login prompts if they appear (e.g. "Stay logged out").
+        await self._dismiss_auth_suggestions()
+
         # Wait for submit button to re-enable as a proxy that streaming finished.
         try:
             await expect_async(submit_locator).to_be_enabled(timeout=15000)
@@ -184,4 +207,3 @@ class PageController:
             f"[{self.req_id}] Retrieved response with {len(content.strip())} characters."
         )
         return content
-

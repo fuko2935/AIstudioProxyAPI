@@ -140,6 +140,12 @@ async def queue_worker():
             logger.info(f"[{req_id}] (Worker) 等待处理锁...")
             async with processing_lock:
                 logger.info(f"[{req_id}] (Worker) 已获取处理锁。开始核心处理...")
+                completion_event = None
+                submit_btn_loc = None
+                client_disco_checker = None
+                disconnect_monitor_task = None
+                client_disconnected_early = False
+                current_request_was_streaming = False
                 
                 # 获取锁后最终主动检测客户端连接
                 is_connected = await _test_client_connection(req_id, http_request)
@@ -157,9 +163,6 @@ async def queue_worker():
                             req_id, request_data, http_request, result_future
                         )
                         
-                        completion_event, submit_btn_loc, client_disco_checker = None, None, None
-                        current_request_was_streaming = False
-
                         if isinstance(returned_value, tuple) and len(returned_value) == 3:
                             completion_event, submit_btn_loc, client_disco_checker = returned_value
                             if completion_event is not None:
@@ -246,7 +249,7 @@ async def queue_worker():
                             # 如果客户端提前断开，跳过按钮状态处理
                             if client_disconnected_early:
                                 logger.info(f"[{req_id}] (Worker) 客户端提前断开，跳过按钮状态处理")
-                            elif submit_btn_loc and client_disco_checker and completion_event:
+                            elif submit_btn_loc is not None and client_disco_checker and completion_event:
                                     # 等待发送按钮禁用确认流式响应完全结束
                                     logger.info(f"[{req_id}] (Worker) 流式响应完成，检查并处理发送按钮状态...")
                                     wait_timeout_ms = 30000  # 30 seconds
@@ -261,7 +264,7 @@ async def queue_worker():
                                         # 检查按钮是否仍然启用，如果启用则直接点击停止
                                         logger.info(f"[{req_id}] (Worker) 检查发送按钮状态...")
                                         try:
-                                            is_button_enabled = await submit_btn_loc.is_enabled(timeout=2000)
+                                            is_button_enabled = await submit_btn_loc.is_enabled(timeout=2000) if submit_btn_loc else False
                                             logger.info(f"[{req_id}] (Worker) 发送按钮启用状态: {is_button_enabled}")
 
                                             if is_button_enabled:
@@ -298,7 +301,7 @@ async def queue_worker():
                                 result_future.set_exception(HTTPException(status_code=500, detail=f"[{req_id}] Error waiting for completion: {ev_wait_err}"))
                         finally:
                             # 清理断开连接监控任务
-                            if 'disconnect_monitor_task' in locals() and not disconnect_monitor_task.done():
+                            if disconnect_monitor_task and not disconnect_monitor_task.done():
                                 disconnect_monitor_task.cancel()
                                 try:
                                     await disconnect_monitor_task

@@ -52,3 +52,6 @@ NO_PROXY_ENV = os.environ.get('NO_PROXY')
 ENABLE_SCRIPT_INJECTION = get_boolean_env('ENABLE_SCRIPT_INJECTION', True)
 USERSCRIPT_PATH = get_environment_variable('USERSCRIPT_PATH', 'browser_utils/more_modles.js')
 # 注意：MODEL_CONFIG_PATH 已废弃，现在直接从油猴脚本解析模型数据
+
+# --- Qwen 特定配置 ---
+ENABLE_QWEN_LOGIN_SUPPORT = get_boolean_env('ENABLE_QWEN_LOGIN_SUPPORT', False)

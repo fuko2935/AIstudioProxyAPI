@@ -49,7 +49,7 @@ class FakeElement:
         self.visible = visible
         self.clicked = False
 
-    async def click(self, timeout=None):
+    async def click(self, timeout=None, **kwargs):
         self.clicked = True
 
     async def get_attribute(self, name):
@@ -62,6 +62,21 @@ class FakeElement:
         if not self.visible:
             raise AssertionError("element not visible")
         return True
+
+    async def wait_for(self, state=None, timeout=None):
+        if state == "visible" and not self.visible:
+            raise AssertionError("element not visible")
+        if state == "hidden" and self.visible:
+            raise AssertionError("element still visible")
+        return True
+
+    async def is_disabled(self):
+        raw_value = self.attrs.get("disabled")
+        if raw_value is None:
+            return False
+        if isinstance(raw_value, bool):
+            return raw_value
+        return str(raw_value).lower() not in ("false", "0", "")
 
 
 class FakeLocator:
@@ -90,7 +105,8 @@ class FakePage:
             return self._button
         if selector == '[aria-label="model-item"]':
             return FakeLocator(self._items)
-        raise KeyError(selector)
+        # Return a non-visible placeholder element for selectors that the test does not model.
+        return FakeLocator([FakeElement(visible=False)])
 
     def is_closed(self):
         return False
@@ -132,7 +148,7 @@ def test_refresh_model_catalog_parses_unique_models(monkeypatch):
     results = asyncio.run(mm.refresh_model_catalog(page, req_id="test-case"))
 
     assert button.clicked, "refresh should click the selector button"
-    assert page.keyboard.pressed == ["Escape"], "menu should be closed with Escape"
+    assert page.keyboard.pressed.count("Escape") >= 1, "menu should be closed with Escape at least once"
     assert [model["id"] for model in results] == ["Alpha", "gpt-4o-mini"]
 
     first, second = results

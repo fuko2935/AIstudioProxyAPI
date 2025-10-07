@@ -22,6 +22,7 @@ from config import (
     AUTO_CONFIRM_LOGIN,
     AUTO_SAVE_AUTH,
     AUTH_SAVE_TIMEOUT,
+    ENABLE_QWEN_LOGIN_SUPPORT,
     ENABLE_SCRIPT_INJECTION,
     SAVED_AUTH_DIR,
     USER_INPUT_END_MARKER_SERVER,
@@ -51,6 +52,9 @@ def _target_host() -> str:
 
 
 def _resolve_storage_state_path(launch_mode: str) -> Optional[str]:
+    if not ENABLE_QWEN_LOGIN_SUPPORT:
+        return None
+
     auth_state = os.environ.get("ACTIVE_AUTH_JSON_PATH", "").strip()
     if launch_mode in {"headless", "virtual_headless"}:
         if not auth_state:
@@ -75,6 +79,69 @@ def _looks_like_login(url: str, target_host: str) -> bool:
         return False
     return any(keyword in lowered for keyword in ("login", "signin", "passport", "auth", "account"))
 
+
+async def _dismiss_guest_prompt(page: AsyncPage) -> None:
+    """Close the guest welcome modal that appears after sending a message."""
+
+    candidate_labels = [
+        "Stay logged out",
+        "Continue without logging in",
+        "Continue as guest",
+        "继续未登录",
+        "继续不登录",
+    ]
+
+    for label in candidate_labels:
+        locator = page.locator(f"button:has-text('{label}')")
+        try:
+            await locator.first.wait_for(state="visible", timeout=2000)
+            await locator.first.click()
+            await asyncio.sleep(0.2)
+            return
+        except PlaywrightTimeoutError:
+            continue
+
+    # Some variants render anchors instead of buttons
+    for label in candidate_labels:
+        locator = page.locator(f"a:has-text('{label}')")
+        try:
+            await locator.first.wait_for(state="visible", timeout=2000)
+            await locator.first.click()
+            await asyncio.sleep(0.2)
+            return
+        except PlaywrightTimeoutError:
+            continue
+
+
+
+
+async def _stop_active_generation(page: AsyncPage) -> None:
+    """Stop any in-progress auto responses that block the UI."""
+
+    stop_selectors = [
+        "button[aria-label='Stop generating']",
+        "button:has-text('Stop')",
+        "button:has-text('停止')",
+        "button:has-text('停止生成')"
+    ]
+
+    for selector in stop_selectors:
+        locator = page.locator(selector)
+        try:
+            await locator.first.wait_for(state="visible", timeout=1500)
+            await locator.first.click()
+            await asyncio.sleep(0.2)
+            break
+        except PlaywrightTimeoutError:
+            continue
+        except Exception:
+            continue
+
+    spinner_locator = page.locator('.running-panel-text-loading, .qwen-chat-loading-icon')
+    try:
+        await spinner_locator.first.wait_for(state="hidden", timeout=1500)
+    except Exception:
+        pass
 
 async def _prompt_text(
     loop: asyncio.AbstractEventLoop,
@@ -157,6 +224,9 @@ async def _maybe_save_auth_state(
     loop: asyncio.AbstractEventLoop,
     launch_mode: str
 ) -> None:
+    if not ENABLE_QWEN_LOGIN_SUPPORT:
+        return
+
     save_auth_filename = os.environ.get("SAVE_AUTH_FILENAME", "").strip()
     if save_auth_filename:
         logger.info(
@@ -204,6 +274,12 @@ async def _handle_login_flow(
     loop: asyncio.AbstractEventLoop,
     target_host: str
 ) -> None:
+    if not ENABLE_QWEN_LOGIN_SUPPORT:
+        raise RuntimeError(
+            "Qwen login page detected but ENABLE_QWEN_LOGIN_SUPPORT is disabled. "
+            "Set ENABLE_QWEN_LOGIN_SUPPORT=true if interactive login becomes necessary."
+        )
+
     logger.info("Authentication step detected before reaching the Qwen chat interface.")
     if AUTO_CONFIRM_LOGIN:
         logger.info("AUTO_CONFIRM_LOGIN enabled; waiting for the page to redirect automatically.")
@@ -223,6 +299,7 @@ async def _handle_login_flow(
     logger.info("Authentication completed; continuing with page initialisation.")
 
 
+
 async def _wait_for_chat_ready(
     page: AsyncPage,
     loop: asyncio.AbstractEventLoop,
@@ -230,12 +307,23 @@ async def _wait_for_chat_ready(
 ) -> None:
     current_url = page.url
     if _looks_like_login(current_url, target_host):
-        await _handle_login_flow(page, loop, target_host)
+        if ENABLE_QWEN_LOGIN_SUPPORT:
+            await _handle_login_flow(page, loop, target_host)
+        else:
+            raise RuntimeError(
+                "Qwen redirected to a login page, but login support is disabled. "
+                "If Qwen now requires authentication, enable it via ENABLE_QWEN_LOGIN_SUPPORT=true."
+            )
+
+    await _dismiss_guest_prompt(page)
+    await _stop_active_generation(page)
 
     try:
         await expect_async(page.locator("#chat-input")).to_be_visible(timeout=20000)
     except Exception as exc:
         raise RuntimeError("Qwen chat input did not become visible in time.") from exc
+
+    await _stop_active_generation(page)
 
 
 async def _initialize_page_logic(browser: AsyncBrowser) -> Tuple[Optional[AsyncPage], bool]:

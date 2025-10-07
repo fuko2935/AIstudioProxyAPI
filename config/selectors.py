@@ -15,8 +15,8 @@ CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR = '[data-qwen-not-supported]'
 UPLOAD_BUTTON_SELECTOR = 'button.chat-prompt-upload-group-btn'
 
 # --- 响应相关选择器 ---
-RESPONSE_CONTAINER_SELECTOR = '.response-message-body--normal, .response-message-body--media'
-RESPONSE_TEXT_SELECTOR = '.response-message-body--normal, .response-message-body--media'
+RESPONSE_CONTAINER_SELECTOR = '.response-meesage-container, .response-message-body--media'
+RESPONSE_TEXT_SELECTOR = '.markdown-content-container'
 
 # --- 加载和状态选择器 ---
 LOADING_SPINNER_SELECTOR = '.running-panel-text-loading, .qwen-chat-loading-icon'

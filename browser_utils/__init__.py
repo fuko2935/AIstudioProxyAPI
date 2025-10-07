@@ -9,7 +9,8 @@ from .operations import (
     get_response_via_copy_button,
     _wait_for_response_completion,
     _get_final_response_content,
-    get_raw_text_content
+    get_raw_text_content,
+    get_default_qwen_models,
 )
 from .model_management import (
     refresh_model_catalog,
@@ -40,6 +41,7 @@ __all__ = [
     '_wait_for_response_completion',
     '_get_final_response_content',
     'get_raw_text_content',
+    'get_default_qwen_models',
     
     # 模型管理相关
     'refresh_model_catalog',

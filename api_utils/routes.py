@@ -24,7 +24,7 @@ from config import *
 from models import ChatCompletionRequest, WebSocketConnectionManager
 
 # --- browser_utils模块导入 ---
-from browser_utils import _handle_model_list_response, refresh_model_catalog
+from browser_utils import _handle_model_list_response, get_default_qwen_models, refresh_model_catalog
 
 # --- 依赖项导入 ---
 from .dependencies import *
@@ -181,7 +181,7 @@ async def list_models(
                     model_list_fetch_event.set()
             else:
                 logger.warning("/v1/models: 刷新后仍无可用模型，使用 DEFAULT_QWEN_MODELS 作为回退。")
-                parsed_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+                parsed_model_list = get_default_qwen_models()
                 server.parsed_model_list = parsed_model_list
                 server.global_model_list_raw_json = parsed_model_list
                 server.model_list_last_refreshed = time.time()
@@ -189,7 +189,7 @@ async def list_models(
                     model_list_fetch_event.set()
         else:
             logger.warning("/v1/models: 页面实例不可用，使用 DEFAULT_QWEN_MODELS 作为回退。")
-            parsed_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+            parsed_model_list = get_default_qwen_models()
             server.parsed_model_list = parsed_model_list
             server.global_model_list_raw_json = parsed_model_list
             server.model_list_last_refreshed = time.time()
@@ -199,11 +199,11 @@ async def list_models(
     if parsed_model_list:
         final_model_list = [m for m in parsed_model_list if m.get("id") not in excluded_model_ids]
     else:
-        final_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+        final_model_list = get_default_qwen_models()
 
     if not final_model_list:
         logger.warning("/v1/models: 过滤后模型列表为空，使用 DEFAULT_QWEN_MODELS 作为最终回退。")
-        final_model_list = [dict(model) for model in DEFAULT_QWEN_MODELS]
+        final_model_list = get_default_qwen_models()
 
     return {"object": "list", "data": final_model_list}
 
