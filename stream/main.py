@@ -13,8 +13,12 @@ def parse_args():
     
     parser.add_argument('--host', default='127.0.0.1', help='Host to bind the proxy server')
     parser.add_argument('--port', type=int, default=3120, help='Port to bind the proxy server')
-    parser.add_argument('--domains', nargs='+', default=['*.google.com'],
-                        help='List of domain patterns to intercept (regex)')
+    parser.add_argument(
+        '--domains',
+        nargs='+',
+        default=['*.google.com', 'chat.qwen.ai', '*.qwen.ai'],
+        help='List of domain patterns to intercept (regex)'
+    )
     parser.add_argument('--proxy', help='Upstream proxy URL (e.g., http://user:pass@host:port)')
     
     return parser.parse_args()
@@ -86,7 +90,7 @@ async def builtin(queue: multiprocessing.Queue = None, port=None, proxy=None):
     proxy_server = ProxyServer(
         host="127.0.0.1",
         port=port,
-        intercept_domains=['*.google.com'],
+        intercept_domains=['*.google.com', 'chat.qwen.ai', '*.qwen.ai'],
         upstream_proxy=proxy,
         queue=queue,
     )

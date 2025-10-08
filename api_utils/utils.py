@@ -346,12 +346,13 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
             if tool_call_visualizations:
                 current_turn_parts.append("\n".join(tool_call_visualizations))
         
-        if len(current_turn_parts) > 1 or (role == 'assistant' and tool_calls):
+        if current_turn_parts:
             combined_parts.append("".join(current_turn_parts))
-        elif not combined_parts and not current_turn_parts:
-            logger.info(f"[{req_id}] (İstem Hazırlama) Rol {role} için indeks {i} konumundaki boş mesaj (araç çağrısı yok) atlandı.")
-        elif len(current_turn_parts) == 1 and not combined_parts:
-            logger.info(f"[{req_id}] (İstem Hazırlama) Rol {role} için indeks {i} konumundaki boş mesaj (yalnızca ön ek) atlandı.")
+        else:
+            if not combined_parts:
+                logger.info(f"[{req_id}] (İstem Hazırlama) Rol {role} için indeks {i} konumundaki boş mesaj (araç çağrısı yok) atlandı.")
+            else:
+                logger.debug(f"[{req_id}] (İstem Hazırlama) Rol {role} için indeks {i} konumunda eklenebilir içerik bulunamadı.")
     
     final_prompt = "".join(combined_parts)
     if final_prompt:
