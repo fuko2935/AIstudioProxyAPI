@@ -6,7 +6,7 @@ import asyncio
 import re
 from typing import Callable, Optional
 
-from playwright.async_api import expect as expect_async, TimeoutError
+from playwright.async_api import expect as expect_async, TimeoutError, FilePayload
 
 from config import (
     PROMPT_TEXTAREA_SELECTOR,
@@ -31,6 +31,7 @@ class PageController:
         self.logger = logger
         self.req_id = req_id
         self._response_count_before_submit: Optional[int] = None
+        self._uploaded_prompt_filename: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Utility helpers
@@ -40,6 +41,83 @@ class PageController:
             raise ClientDisconnectedError(
                 f"[{self.req_id}] Client disconnected at stage: {stage}"
             )
+
+    async def _set_textarea_value(self, textarea, prompt: str) -> None:
+        """
+        Fill the Qwen textarea by bypassing the maxlength attribute (40960 chars).
+        React-based inputs ignore direct assignments unless the native setter is used.
+        """
+        script = """
+        (el, value) => {
+            let maxAdjusted = false;
+            const priorAttr = el.getAttribute('maxlength');
+            const priorProp = typeof el.maxLength === 'number' ? el.maxLength : null;
+
+            const desiredLength = Math.max(value.length + 1024, 65536);
+            if (priorAttr !== null && Number(priorAttr) >= 0 && Number(priorAttr) < desiredLength) {
+                el.setAttribute('data-original-maxlength', priorAttr);
+                el.removeAttribute('maxlength');
+                maxAdjusted = true;
+            }
+            if (priorProp !== null && priorProp >= 0 && priorProp < desiredLength) {
+                try {
+                    Object.defineProperty(el, 'maxLength', {
+                        configurable: true,
+                        get() { return desiredLength; },
+                        set() {},
+                    });
+                } catch (err) {
+                    el.maxLength = desiredLength;
+                }
+                maxAdjusted = true;
+            }
+
+            const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+            if (descriptor && descriptor.set) {
+                descriptor.set.call(el, value);
+            } else {
+                el.value = value;
+            }
+
+            const tracker = el._valueTracker;
+            if (tracker) {
+                tracker.setValue('');
+            }
+
+            const inputEvent = new Event('input', { bubbles: true });
+            Reflect.defineProperty(inputEvent, 'target', { value: el, enumerable: true });
+            el.dispatchEvent(inputEvent);
+
+            const changeEvent = new Event('change', { bubbles: true });
+            Reflect.defineProperty(changeEvent, 'target', { value: el, enumerable: true });
+            el.dispatchEvent(changeEvent);
+
+            return {
+                maxAdjusted,
+                finalLength: el.value.length,
+                expectedLength: value.length,
+            };
+        }
+        """
+
+        try:
+            result = await textarea.evaluate(script, prompt)
+            if result and isinstance(result, dict):
+                final_len = result.get("finalLength", 0)
+                expected = result.get("expectedLength", len(prompt))
+                if final_len < expected:
+                    self.logger.warning(
+                        f"[{self.req_id}] Textarea value truncated to {final_len} chars (expected {expected})."
+                    )
+                elif result.get("maxAdjusted"):
+                    self.logger.info(
+                        f"[{self.req_id}] Textarea maxlength adjusted; prompt length {expected}."
+                    )
+        except Exception as fill_err:
+            self.logger.warning(
+                f"[{self.req_id}] Direct textarea assignment failed ({fill_err}); falling back to Playwright fill."
+            )
+            await textarea.fill(prompt)
 
     async def _dismiss_auth_suggestions(self) -> None:
         """Close login prompts or full-screen modals that block interactions."""
@@ -129,15 +207,53 @@ class PageController:
         await expect_async(textarea).to_be_visible(timeout=WAIT_FOR_ELEMENT_TIMEOUT_MS)
         try:
             html_preview = await textarea.evaluate("el.outerHTML")
-            self.logger.debug(f"[{self.req_id}] Textarea HTML: {html_preview[:120]!r}")
-        except Exception:
-            pass
+            self.logger.info(f"[{self.req_id}] Textarea HTML snippet: {html_preview[:200]!r}")
+        except Exception as preview_err:
+            self.logger.warning(
+                f"[{self.req_id}] Unable to read textarea outerHTML: {preview_err}"
+            )
         await self._dismiss_auth_suggestions()
         await textarea.click()
-        await textarea.fill(prompt)
+        await self._dismiss_auth_suggestions()
+
+        prompt_to_fill = prompt
+        self._uploaded_prompt_filename = None
+
+        if len(prompt) > 40960:
+            file_name = f"user_prompt_{self.req_id}.txt"
+            file_payload = FilePayload(
+                name=file_name,
+                mimeType="text/plain",
+                buffer=prompt.encode("utf-8"),
+            )
+
+            file_input = self.page.locator("#filesUpload")
+            try:
+                await file_input.set_input_files(file_payload)
+                self._uploaded_prompt_filename = file_name
+                self.logger.info(
+                    f"[{self.req_id}] Prompt exceeded 40960 characters; uploaded {file_name} ({len(prompt)} chars)."
+                )
+            except Exception as upload_err:
+                self.logger.error(
+                    f"[{self.req_id}] Failed to upload prompt as file: {upload_err}"
+                )
+                raise
+
+            preview = prompt[:1000]
+            prompt_to_fill = (
+                f"The full user prompt exceeded the web UI limit and has been uploaded as the attached file `{file_name}`.\n\n"
+                f"Preview (first 1000 chars):\n{preview}"
+            )
+
+        await self._set_textarea_value(textarea, prompt_to_fill)
         await self._dismiss_auth_suggestions()
         try:
             current_value = await textarea.input_value()
+            value_len = await textarea.evaluate("el => el.value.length")
+            self.logger.info(
+                f"[{self.req_id}] Textarea length after set: {value_len} (expected {len(prompt_to_fill)})"
+            )
             self.logger.debug(f"[{self.req_id}] Textarea current value preview: {current_value[:60]!r}")
         except Exception:
             current_value = None

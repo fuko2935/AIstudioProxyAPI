@@ -156,6 +156,23 @@ async def queue_worker():
                 elif result_future.done():
                     logger.info(f"[{req_id}] (Worker) Future işlem öncesinde tamamlanmış veya iptal edilmiş; atlanıyor.")
                 else:
+                    # Her yeni istekte sohbeti sıfırla
+                    try:
+                        from server import page_instance, is_page_ready
+                        if page_instance and is_page_ready:
+                            from browser_utils.page_controller import PageController
+
+                            def noop_disconnect_checker(stage: str = "") -> bool:
+                                return False
+
+                            page_controller = PageController(page_instance, logger, req_id)
+                            await page_controller.clear_chat_history(noop_disconnect_checker)
+                            logger.info(f"[{req_id}] (Worker) ✅ İstek öncesi sohbet geçmişi sıfırlandı.")
+                        else:
+                            logger.warning(f"[{req_id}] (Worker) Sohbet sıfırlanamadı; sayfa hazır değil (page_ready={is_page_ready}).")
+                    except Exception as pre_clear_err:
+                        logger.error(f"[{req_id}] (Worker) İstek öncesi sohbet temizlenirken hata: {pre_clear_err}", exc_info=True)
+
                     # 调用实际的请求处理函数
                     try:
                         from api_utils import _process_request_refactored
