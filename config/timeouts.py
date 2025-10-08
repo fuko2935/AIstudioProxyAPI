@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Yanıt bekleme ayarları ---
-RESPONSE_COMPLETION_TIMEOUT = int(os.environ.get('RESPONSE_COMPLETION_TIMEOUT', '300000'))  # 5 minutes total timeout (in ms)
+RESPONSE_COMPLETION_TIMEOUT = int(os.environ.get('RESPONSE_COMPLETION_TIMEOUT', '600000'))  # 10 minutes total timeout (in ms)
 INITIAL_WAIT_MS_BEFORE_POLLING = int(os.environ.get('INITIAL_WAIT_MS_BEFORE_POLLING', '500'))  # ms, initial wait before polling for response completion
 
 # --- Polling aralıkları ---

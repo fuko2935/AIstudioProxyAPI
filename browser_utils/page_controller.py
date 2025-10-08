@@ -7,6 +7,7 @@ import re
 from typing import Callable, Optional
 
 from playwright.async_api import expect as expect_async, TimeoutError, FilePayload
+from fastapi import HTTPException
 
 from config import (
     PROMPT_TEXTAREA_SELECTOR,
@@ -170,16 +171,42 @@ class PageController:
             return
 
         button_locator = self.page.locator(CLEAR_CHAT_BUTTON_SELECTOR)
+        chat_reset_done = False
         try:
             await expect_async(button_locator).to_be_visible(timeout=WAIT_FOR_ELEMENT_TIMEOUT_MS)
             await self._dismiss_auth_suggestions()
             await button_locator.click(timeout=CLICK_TIMEOUT_MS)
             self.logger.info(f"[{self.req_id}] New chat button clicked.")
+            chat_reset_done = True
         except Exception as exc:
             self.logger.warning(
                 f"[{self.req_id}] Unable to activate new chat button: {exc}"
             )
             await save_error_snapshot(f"clear_chat_{self.req_id}")
+            # Attempt JS fallback
+            try:
+                fallback_clicked = await self.page.evaluate(
+                    """(selector) => {
+                        const btn = document.querySelector(selector);
+                        if (!btn) return false;
+                        btn.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+                        if (typeof btn.click === 'function') btn.click();
+                        return true;
+                    }""",
+                    CLEAR_CHAT_BUTTON_SELECTOR
+                )
+                if fallback_clicked:
+                    chat_reset_done = True
+                    self.logger.info(f"[{self.req_id}] New chat triggered via JS fallback.")
+                else:
+                    self.logger.error(
+                        f"[{self.req_id}] JS fallback could not locate new chat button; chat may not reset."
+                    )
+            except Exception as js_exc:
+                self.logger.error(
+                    f"[{self.req_id}] JS fallback for new chat failed: {js_exc}"
+                )
+        if not chat_reset_done:
             return
 
         if CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR and CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR != "[data-qwen-not-supported]":
@@ -192,6 +219,36 @@ class PageController:
             except Exception as exc:
                 self.logger.warning(
                     f"[{self.req_id}] Failed to confirm chat clearing: {exc}"
+                )
+
+        # Ensure textarea is empty and ready
+        try:
+            await expect_async(self.page.locator(PROMPT_TEXTAREA_SELECTOR)).to_have_value("", timeout=5000)
+        except Exception:
+            # As a last resort, clear textarea manually
+            try:
+                await self.page.evaluate(
+                    """(selector) => {
+                        const el = document.querySelector(selector);
+                        if (el) {
+                            const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+                            if (descriptor && descriptor.set) {
+                                descriptor.set.call(el, '');
+                            } else {
+                                el.value = '';
+                            }
+                            const tracker = el._valueTracker;
+                            if (tracker) tracker.setValue('');
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }""",
+                    PROMPT_TEXTAREA_SELECTOR
+                )
+                self.logger.debug(f"[{self.req_id}] Textarea manually cleared after new chat.")
+            except Exception as clear_err:
+                self.logger.warning(
+                    f"[{self.req_id}] Unable to confirm textarea reset after new chat: {clear_err}"
                 )
 
     # ------------------------------------------------------------------
@@ -209,42 +266,71 @@ class PageController:
             html_preview = await textarea.evaluate("el.outerHTML")
             self.logger.info(f"[{self.req_id}] Textarea HTML snippet: {html_preview[:200]!r}")
         except Exception as preview_err:
-            self.logger.warning(
+            self.logger.debug(
                 f"[{self.req_id}] Unable to read textarea outerHTML: {preview_err}"
             )
         await self._dismiss_auth_suggestions()
-        await textarea.click()
+        click_via_playwright = False
+        try:
+            await expect_async(textarea).to_be_editable(timeout=WAIT_FOR_ELEMENT_TIMEOUT_MS)
+        except Exception as editable_err:
+            self.logger.debug(
+                f"[{self.req_id}] Textarea editability check failed: {editable_err}"
+            )
+
+        try:
+            await textarea.click(timeout=CLICK_TIMEOUT_MS)
+            click_via_playwright = True
+        except Exception as click_err:
+            self.logger.warning(
+                f"[{self.req_id}] Textarea click failed: {click_err}; using JS fallback."
+            )
+            try:
+                await self.page.evaluate(
+                    """(selector) => {
+                        const el = document.querySelector(selector);
+                        if (el) {
+                            el.focus();
+                            el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                        }
+                    }""",
+                    PROMPT_TEXTAREA_SELECTOR
+                )
+            except Exception as js_focus_err:
+                self.logger.error(
+                    f"[{self.req_id}] JS fallback focus failed: {js_focus_err}"
+                )
+        if click_via_playwright:
+            await self._dismiss_auth_suggestions()
         await self._dismiss_auth_suggestions()
 
-        prompt_to_fill = prompt
+        prompt_to_fill = ""
         self._uploaded_prompt_filename = None
 
-        if len(prompt) > 40960:
-            file_name = f"user_prompt_{self.req_id}.txt"
-            file_payload = FilePayload(
-                name=file_name,
-                mimeType="text/plain",
-                buffer=prompt.encode("utf-8"),
+        file_name = f"user_prompt_{self.req_id}.txt"
+        file_payload = FilePayload(
+            name=file_name,
+            mimeType="text/plain",
+            buffer=prompt.encode("utf-8"),
+        )
+
+        file_input = self.page.locator("#filesUpload")
+        try:
+            await file_input.set_input_files(file_payload)
+            self._uploaded_prompt_filename = file_name
+            self.logger.info(
+                f"[{self.req_id}] Uploaded prompt as attachment {file_name} ({len(prompt)} chars)."
+            )
+        except Exception as upload_err:
+            self.logger.error(
+                f"[{self.req_id}] Failed to upload prompt as file: {upload_err}"
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"[{self.req_id}] Prompt file upload failed: {upload_err}"
             )
 
-            file_input = self.page.locator("#filesUpload")
-            try:
-                await file_input.set_input_files(file_payload)
-                self._uploaded_prompt_filename = file_name
-                self.logger.info(
-                    f"[{self.req_id}] Prompt exceeded 40960 characters; uploaded {file_name} ({len(prompt)} chars)."
-                )
-            except Exception as upload_err:
-                self.logger.error(
-                    f"[{self.req_id}] Failed to upload prompt as file: {upload_err}"
-                )
-                raise
-
-            preview = prompt[:1000]
-            prompt_to_fill = (
-                f"The full user prompt exceeded the web UI limit and has been uploaded as the attached file `{file_name}`.\n\n"
-                f"Preview (first 1000 chars):\n{preview}"
-            )
+        # No additional text; rely solely on the uploaded file.
 
         await self._set_textarea_value(textarea, prompt_to_fill)
         await self._dismiss_auth_suggestions()
@@ -335,6 +421,41 @@ class PageController:
             self.logger.error(f"[{self.req_id}] Failed to read response text: {extract_err}")
             await save_error_snapshot(f"response_extract_error_{self.req_id}")
             content = ""
+
+        if not content.strip():
+            # Attempt broader fallback from the entire container
+            fallback_text = ""
+            try:
+                fallback_text = await container.inner_text()
+                if fallback_text and fallback_text.strip():
+                    self.logger.debug(f"[{self.req_id}] Container inner_text fallback produced {len(fallback_text.strip())} characters.")
+            except Exception as fallback_err:
+                self.logger.debug(f"[{self.req_id}] Container fallback inner_text failed: {fallback_err}")
+
+            if fallback_text.strip():
+                content = fallback_text.strip()
+
+        if not content.strip():
+            # Check for attachment hints
+            attachment_labels = []
+            try:
+                attachment_labels = await container.locator("a[download], button:has-text('Download')").all_inner_texts()
+            except Exception as attachment_err:
+                self.logger.debug(f"[{self.req_id}] Attachment lookup failed: {attachment_err}")
+
+            if attachment_labels:
+                attachment_summary = ", ".join(label.strip() or "unnamed file" for label in attachment_labels)
+                self.logger.warning(f"[{self.req_id}] Model returned attachments but no text: {attachment_summary}")
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"[{self.req_id}] Model returned attachment(s) ({attachment_summary}) but no textual response."
+                )
+
+            self.logger.warning(f"[{self.req_id}] Model returned no textual response.")
+            raise HTTPException(
+                status_code=502,
+                detail=f"[{self.req_id}] Model returned no textual response. Please retry."
+            )
 
         self.logger.info(
             f"[{self.req_id}] Retrieved response with {len(content.strip())} characters."
