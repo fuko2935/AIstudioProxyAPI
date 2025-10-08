@@ -1,199 +1,199 @@
-# 日常运行指南
+# Günlük Kullanım Kılavuzu
 
-本指南介绍如何在完成首次认证设置后进行日常运行。项目提供了多种启动方式，推荐使用基于 `.env` 配置文件的简化启动方式。
+Bu kılavuz, ilk kimlik doğrulama kurulumunu tamamladıktan sonra günlük işlemlerin nasıl yapılacağını açıklar. Proje, çeşitli başlatma yöntemleri sunar ve `.env` yapılandırma dosyasına dayalı basitleştirilmiş başlatma yönteminin kullanılması önerilir.
 
-## 概述
+## Genel Bakış
 
-完成首次认证设置后，您可以选择以下方式进行日常运行：
+İlk kimlik doğrulama kurulumunu tamamladıktan sonra, günlük işlemler için aşağıdaki yöntemlerden birini seçebilirsiniz:
 
-- **图形界面启动**: 使用 [`gui_launcher.py`](../gui_launcher.py) 提供的现代化GUI界面
-- **命令行启动**: 直接使用 [`launch_camoufox.py`](../launch_camoufox.py) 命令行工具
-- **Docker部署**: 使用容器化部署方式
+- **Grafik Arayüz ile Başlatma**: [`gui_launcher.py`](../gui_launcher.py) tarafından sağlanan modern GUI arayüzünü kullanın
+- **Komut Satırından Başlatma**: Doğrudan [`launch_camoufox.py`](../launch_camoufox.py) komut satırı aracını kullanın
+- **Docker Dağıtımı**: Konteynerleştirilmiş dağıtım yöntemini kullanın
 
-## ⭐ 简化启动方式（推荐）
+## ⭐ Basitleştirilmiş Başlatma Yöntemi (Önerilen)
 
-**基于 `.env` 配置文件的统一配置管理，启动变得极其简单！**
+**.env` yapılandırma dosyasına dayalı birleşik yapılandırma yönetimi ile başlatma son derece basit hale gelir!**
 
-### 配置优势
+### Yapılandırma Avantajları
 
-- ✅ **一次配置，终身受益**: 配置好 `.env` 文件后，启动命令极其简洁
-- ✅ **版本更新无忧**: `git pull` 后无需重新配置，直接启动
-- ✅ **参数集中管理**: 所有配置项统一在 `.env` 文件中
-- ✅ **环境隔离**: 不同环境可使用不同的配置文件
+- ✅ **Bir kez yapılandır, ömür boyu kullan**: `.env` dosyasını yapılandırdıktan sonra başlatma komutları son derece basittir
+- ✅ **Sürüm güncellemeleri sorunsuz**: `git pull`'dan sonra yeniden yapılandırmaya gerek yok, doğrudan başlatın
+- ✅ **Parametrelerin merkezi yönetimi**: Tüm yapılandırma öğeleri `.env` dosyasında birleştirilmiştir
+- ✅ **Ortam yalıtımı**: Farklı ortamlar için farklı yapılandırma dosyaları kullanılabilir
 
-### 基本启动（推荐）
+### Temel Başlatma (Önerilen)
 
 ```bash
-# 图形界面启动（推荐新手）
+# Grafik arayüz ile başlatma (yeni başlayanlar için önerilir)
 python gui_launcher.py
 
-# 命令行启动（推荐日常使用）
+# Komut satırından başlatma (günlük kullanım için önerilir)
 python launch_camoufox.py --headless
 
-# 调试模式（首次设置或故障排除）
+# Hata ayıklama modu (ilk kurulum veya sorun giderme)
 python launch_camoufox.py --debug
 ```
 
-**就这么简单！** 所有配置都在 `.env` 文件中预设好了，无需复杂的命令行参数。
+**İşte bu kadar basit!** Tüm yapılandırmalar `.env` dosyasında önceden ayarlanmıştır, karmaşık komut satırı parametrelerine gerek yoktur.
 
-## 启动器说明
+## Başlatıcı Açıklaması
 
-### 关于 `--virtual-display` (Linux 虚拟显示无头模式)
+### `--virtual-display` Hakkında (Linux Sanal Ekran Başsız Modu)
 
-*   **为什么使用?** 与标准的无头模式相比，虚拟显示模式通过创建一个完整的虚拟 X 服务器环境 (Xvfb) 来运行浏览器。这可以模拟一个更真实的桌面环境，从而可能进一步降低被网站检测为自动化脚本或机器人的风险，特别适用于对反指纹和反检测有更高要求的场景，同时确保无桌面的环境下能正常运行服务
-*   **什么时候使用?** 当您在 Linux 环境下运行，并且希望以无头模式操作。
-*   **如何使用?**
-    1. 确保您的 Linux 系统已安装 `xvfb` (参见 [安装指南](installation-guide.md) 中的安装说明)。
-    2. 在运行 [`launch_camoufox.py`](../launch_camoufox.py) 时添加 `--virtual-display` 标志。例如:
+*   **Neden kullanılır?** Standart başsız modla karşılaştırıldığında, sanal ekran modu, tarayıcıyı çalıştırmak için tam bir sanal X sunucusu ortamı (Xvfb) oluşturur. Bu, daha gerçekçi bir masaüstü ortamını simüle edebilir, bu da bir web sitesi tarafından otomasyon betiği veya bot olarak algılanma riskini daha da azaltabilir, özellikle parmak izi ve algılama önleme için daha yüksek gereksinimleri olan senaryolar için uygundur ve aynı zamanda masaüstü olmayan bir ortamda hizmetin normal şekilde çalışmasını sağlar.
+*   **Ne zaman kullanılır?** Linux ortamında çalışırken ve başsız modda çalışmak istediğinizde.
+*   **Nasıl kullanılır?**
+    1. Linux sisteminizde `xvfb`'nin kurulu olduğundan emin olun ([Kurulum Kılavuzu](installation-guide.md)'ndaki kurulum talimatlarına bakın).
+    2. [`launch_camoufox.py`](../launch_camoufox.py) çalıştırırken `--virtual-display` bayrağını ekleyin. Örneğin:
         ```bash
         python launch_camoufox.py --virtual-display --server-port 2048 --stream-port 3120 --internal-camoufox-proxy ''
         ```
 
-## 代理配置优先级
+## Proxy Yapılandırma Önceliği
 
-项目采用统一的代理配置管理系统，按以下优先级顺序确定代理设置：
+Proje, proxy ayarlarını belirlemek için aşağıdaki öncelik sırasına göre birleşik bir proxy yapılandırma yönetim sistemi kullanır:
 
-1. **`--internal-camoufox-proxy` 命令行参数** (最高优先级)
-   - 明确指定代理：`--internal-camoufox-proxy 'http://127.0.0.1:7890'`
-   - 明确禁用代理：`--internal-camoufox-proxy ''`
-2. **`UNIFIED_PROXY_CONFIG` 环境变量** (推荐，.env 文件配置)
-3. **`HTTP_PROXY` 环境变量**
-4. **`HTTPS_PROXY` 环境变量**
-5. **系统代理设置** (Linux 下的 gsettings，最低优先级)
+1. **`--internal-camoufox-proxy` komut satırı parametresi** (en yüksek öncelik)
+   - Proxy'yi açıkça belirtin: `--internal-camoufox-proxy 'http://127.0.0.1:7890'`
+   - Proxy'yi açıkça devre dışı bırakın: `--internal-camoufox-proxy ''`
+2. **`UNIFIED_PROXY_CONFIG` ortam değişkeni** (önerilen, .env dosyası yapılandırması)
+3. **`HTTP_PROXY` ortam değişkeni**
+4. **`HTTPS_PROXY` ortam değişkeni**
+5. **Sistem proxy ayarları** (Linux altında gsettings, en düşük öncelik)
 
-**推荐配置方式**:
+**Önerilen yapılandırma yöntemi**:
 ```env
-# .env 文件中统一配置代理
+# .env dosyasında proxy'yi birleşik olarak yapılandırın
 UNIFIED_PROXY_CONFIG=http://127.0.0.1:7890
-# 或禁用代理
+# veya proxy'yi devre dışı bırakın
 UNIFIED_PROXY_CONFIG=
 ```
 
-**重要说明**：此代理配置会同时应用于 Camoufox 浏览器和流式代理服务的上游连接，确保整个系统的代理行为一致。
+**Önemli Not**: Bu proxy yapılandırması, tüm sistemin proxy davranışının tutarlı olmasını sağlamak için hem Camoufox tarayıcısına hem de akış proxy hizmetinin yukarı akış bağlantılarına uygulanacaktır.
 
-## 三层响应获取机制配置
+## Üç Katmanlı Yanıt Alma Mekanizması Yapılandırması
 
-项目采用三层响应获取机制，确保高可用性和最佳性能。详细说明请参见 [流式处理模式详解](streaming-modes.md)。
+Proje, yüksek kullanılabilirlik ve en iyi performansı sağlamak için üç katmanlı bir yanıt alma mekanizması kullanır. Ayrıntılı açıklamalar için lütfen [Akış İşleme Modları Ayrıntılı Açıklaması](streaming-modes.md)'na bakın.
 
-### 模式1: 优先使用集成的流式代理 (默认推荐)
+### Mod 1: Entegre Akış Proxy'sini Önceliklendirme (Varsayılan Önerilen)
 
-**使用 `.env` 配置（推荐）:**
+**`.env` yapılandırmasını kullanma (önerilir):**
 
 ```env
-# 在 .env 文件中配置
+# .env dosyasında yapılandırın
 STREAM_PORT=3120
-UNIFIED_PROXY_CONFIG=http://127.0.0.1:7890  # 如需代理
+UNIFIED_PROXY_CONFIG=http://127.0.0.1:7890  # Gerekirse proxy
 ```
 
 ```bash
-# 然后简单启动
+# Sonra basitçe başlatın
 python launch_camoufox.py --headless
 ```
 
-**命令行覆盖（高级用户）:**
+**Komut satırı geçersiz kılma (ileri düzey kullanıcılar):**
 
 ```bash
-# 使用自定义流式代理端口
+# Özel akış proxy bağlantı noktası kullanın
 python launch_camoufox.py --headless --stream-port 3125
 
-# 启用代理配置
+# Proxy yapılandırmasını etkinleştirin
 python launch_camoufox.py --headless --internal-camoufox-proxy 'http://127.0.0.1:7890'
 
-# 明确禁用代理（覆盖 .env 中的设置）
+# Proxy'yi açıkça devre dışı bırakın (.env'deki ayarları geçersiz kılar)
 python launch_camoufox.py --headless --internal-camoufox-proxy ''
 ```
 
-在此模式下，主服务器会优先尝试通过端口 `3120` (或 `.env` 中配置的 `STREAM_PORT`) 上的集成流式代理获取响应。如果失败，则回退到 Playwright 页面交互。
+Bu modda, ana sunucu önce `3120` numaralı bağlantı noktasındaki (veya `.env`'de yapılandırılan `STREAM_PORT`) entegre akış proxy'si aracılığıyla yanıtı almayı dener. Başarısız olursa, Playwright sayfa etkileşimine geri döner.
 
-### 模式2: 优先使用外部 Helper 服务 (禁用集成流式代理)
+### Mod 2: Harici Yardımcı Hizmeti Önceliklendirme (Entegre Akış Proxy'sini Devre Dışı Bırakma)
 
-**使用 `.env` 配置（推荐）:**
+**`.env` yapılandırmasını kullanma (önerilir):**
 
 ```bash
-# 在 .env 文件中配置
-STREAM_PORT=0  # 禁用集成流式代理
+# .env dosyasında yapılandırın
+STREAM_PORT=0  # Entegre akış proxy'sini devre dışı bırak
 GUI_DEFAULT_HELPER_ENDPOINT=http://your-helper-service.com/api/getStreamResponse
 
-# 然后简单启动
+# Sonra basitçe başlatın
 python launch_camoufox.py --headless
 ```
 
-**命令行覆盖（高级用户）:**
+**Komut satırı geçersiz kılma (ileri düzey kullanıcılar):**
 
 ```bash
-# 外部Helper模式
+# Harici Yardımcı modu
 python launch_camoufox.py --headless --stream-port 0 --helper 'http://your-helper-service.com/api/getStreamResponse'
 ```
 
-在此模式下，主服务器会优先尝试通过 Helper 端点获取响应 (需要有效的 `auth_profiles/active/*.json` 以提取 `SAPISID`)。如果失败，则回退到 Playwright 页面交互。
+Bu modda, ana sunucu önce Yardımcı uç noktası aracılığıyla yanıtı almayı dener (`SAPISID`'yi çıkarmak için geçerli `auth_profiles/active/*.json` gerekir). Başarısız olursa, Playwright sayfa etkileşimine geri döner.
 
-### 模式3: 仅使用 Playwright 页面交互 (禁用所有流式代理和 Helper)
+### Mod 3: Yalnızca Playwright Sayfa Etkileşimini Kullanma (Tüm Akış Proxy'lerini ve Yardımcıları Devre Dışı Bırakma)
 
-**使用 `.env` 配置（推荐）:**
+**`.env` yapılandırmasını kullanma (önerilir):**
 
 ```bash
-# 在 .env 文件中配置
-STREAM_PORT=0  # 禁用集成流式代理
-GUI_DEFAULT_HELPER_ENDPOINT=  # 禁用 Helper 服务
+# .env dosyasında yapılandırın
+STREAM_PORT=0  # Entegre akış proxy'sini devre dışı bırak
+GUI_DEFAULT_HELPER_ENDPOINT=  # Yardımcı hizmeti devre dışı bırak
 
-# 然后简单启动
+# Sonra basitçe başlatın
 python launch_camoufox.py --headless
 ```
 
-**命令行覆盖（高级用户）:**
+**Komut satırı geçersiz kılma (ileri düzey kullanıcılar):**
 
 ```bash
-# 纯Playwright模式
+# Saf Playwright modu
 python launch_camoufox.py --headless --stream-port 0 --helper ''
 ```
 
-在此模式下，主服务器将仅通过 Playwright 与 AI Studio 页面交互 (模拟点击"编辑"或"复制"按钮) 来获取响应。这是传统的后备方法。
+Bu modda, ana sunucu yanıtı almak için yalnızca Playwright aracılığıyla AI Studio sayfasıyla etkileşime girecektir ("Düzenle" veya "Kopyala" düğmelerine tıklamayı simüle ederek). Bu, geleneksel bir geri dönüş yöntemidir.
 
-## 使用图形界面启动器
+## Grafik Arayüz Başlatıcısını Kullanma
 
-项目提供了一个基于 Tkinter 的图形用户界面 (GUI) 启动器：[`gui_launcher.py`](../gui_launcher.py)。
+Proje, Tkinter tabanlı bir grafik kullanıcı arayüzü (GUI) başlatıcısı sağlar: [`gui_launcher.py`](../gui_launcher.py).
 
-### 启动 GUI
+### GUI'yi Başlatma
 
 ```bash
 python gui_launcher.py
 ```
 
-### GUI 功能
+### GUI Özellikleri
 
-*   **服务端口配置**: 指定 FastAPI 服务器监听的端口号 (默认为 2048)。
-*   **端口进程管理**: 查询和停止指定端口上的进程。
-*   **启动选项**:
-    1. **启动有头模式 (Debug, 交互式)**: 对应 `python launch_camoufox.py --debug`
-    2. **启动无头模式 (后台独立运行)**: 对应 `python launch_camoufox.py --headless`
-*   **本地LLM模拟服务**: 启动和管理本地LLM模拟服务 (基于 [`llm.py`](../llm.py))
-*   **状态与日志**: 显示服务状态和实时日志
+*   **Hizmet Bağlantı Noktası Yapılandırması**: FastAPI sunucusunun dinleyeceği bağlantı noktası numarasını belirtin (varsayılan 2048).
+*   **Bağlantı Noktası İşlem Yönetimi**: Belirtilen bağlantı noktasındaki işlemleri sorgulayın ve durdurun.
+*   **Başlatma Seçenekleri**:
+    1. **Başlıklı Modu Başlat (Hata Ayıklama, Etkileşimli)**: `python launch_camoufox.py --debug`'a karşılık gelir
+    2. **Başsız Modu Başlat (Arka Planda Bağımsız Çalışma)**: `python launch_camoufox.py --headless`'a karşılık gelir
+*   **Yerel LLM Simülasyon Hizmeti**: Yerel LLM simülasyon hizmetini başlatın ve yönetin ([`llm.py`](../llm.py) tabanlı)
+*   **Durum ve Günlükler**: Hizmet durumunu ve gerçek zamanlı günlükleri görüntüleyin
 
-### 使用建议
+### Kullanım Önerileri
 
-*   首次运行或需要更新认证文件：使用"启动有头模式"
-*   日常后台运行：使用"启动无头模式"
-*   需要详细日志或调试：直接使用命令行 [`launch_camoufox.py`](../launch_camoufox.py)
+*   İlk çalıştırma veya kimlik doğrulama dosyasını güncelleme ihtiyacı: "Başlıklı Modu Başlat"ı kullanın
+*   Günlük arka plan çalışması: "Başsız Modu Başlat"ı kullanın
+*   Ayrıntılı günlükler veya hata ayıklama ihtiyacı: Doğrudan komut satırını kullanın [`launch_camoufox.py`](../launch_camoufox.py)
 
-## 重要注意事项
+## Önemli Notlar
 
-### 配置优先级
+### Yapılandırma Önceliği
 
-1. **`.env` 文件配置** - 推荐的配置方式，一次设置长期使用
-2. **命令行参数** - 可以覆盖 `.env` 文件中的设置，适用于临时调整
-3. **环境变量** - 最低优先级，主要用于系统级配置
+1. **`.env` dosya yapılandırması** - Önerilen yapılandırma yöntemi, bir kez ayarlayın ve uzun süre kullanın
+2. **Komut satırı parametreleri** - `.env` dosyasındaki ayarları geçersiz kılabilir, geçici ayarlamalar için uygundur
+3. **Ortam değişkenleri** - En düşük öncelik, esas olarak sistem düzeyinde yapılandırma için kullanılır
 
-### 使用建议
+### Kullanım Önerileri
 
-- **日常使用**: 配置好 `.env` 文件后，使用简单的 `python launch_camoufox.py --headless` 即可
-- **临时调整**: 需要临时修改配置时，使用命令行参数覆盖，无需修改 `.env` 文件
-- **首次设置**: 使用 `python launch_camoufox.py --debug` 进行认证设置
+- **Günlük kullanım**: `.env` dosyasını yapılandırdıktan sonra, basit `python launch_camoufox.py --headless` yeterlidir
+- **Geçici ayarlamalar**: Yapılandırmayı geçici olarak değiştirmeniz gerektiğinde, `.env` dosyasını değiştirmeden komut satırı parametrelerini kullanarak geçersiz kılın
+- **İlk kurulum**: Kimlik doğrulama kurulumu için `python launch_camoufox.py --debug` kullanın
 
-**只有当你确认使用调试模式一切运行正常（特别是浏览器内的登录和认证保存），并且 `auth_profiles/active/` 目录下有有效的认证文件后，才推荐使用无头模式作为日常后台运行的标准方式。**
+**Yalnızca hata ayıklama modunu kullanarak her şeyin normal çalıştığını (özellikle tarayıcı içi oturum açma ve kimlik doğrulama kaydı) ve `auth_profiles/active/` dizininde geçerli bir kimlik doğrulama dosyası olduğunu onayladıktan sonra, başsız modu günlük arka plan çalışması için standart bir yol olarak kullanmanız önerilir.**
 
-## 下一步
+## Sonraki Adımlar
 
-日常运行设置完成后，请参考：
-- [API 使用指南](api-usage.md)
-- [Web UI 使用指南](webui-guide.md)
-- [故障排除指南](troubleshooting.md)
+Günlük çalışma ayarları tamamlandıktan sonra, lütfen şunlara bakın:
+- [API Kullanım Kılavuzu](api-usage.md)
+- [Web UI Kullanım Kılavuzu](webui-guide.md)
+- [Sorun Giderme Kılavuzu](troubleshooting.md)

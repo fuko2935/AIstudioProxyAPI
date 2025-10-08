@@ -1,41 +1,41 @@
 """
-CSS选择器配置模块
-包含所有用于页面元素定位的CSS选择器
+CSS seçicileri için yapılandırma modülü.
+Sayfa öğelerini bulmakta kullanılan tüm CSS seçicilerini içerir.
 """
 
-# --- 输入相关选择器 ---
+# --- Girdi ile ilgili seçiciler ---
 PROMPT_TEXTAREA_SELECTOR = '#chat-input'
 INPUT_SELECTOR = PROMPT_TEXTAREA_SELECTOR
 INPUT_SELECTOR2 = PROMPT_TEXTAREA_SELECTOR
 
-# --- 按钮选择器 ---
+# --- Düğme seçicileri ---
 SUBMIT_BUTTON_SELECTOR = '#send-message-button'
 CLEAR_CHAT_BUTTON_SELECTOR = '#new-chat-button'
 CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR = '[data-qwen-not-supported]'
 UPLOAD_BUTTON_SELECTOR = 'button.chat-prompt-upload-group-btn'
 
-# --- 响应相关选择器 ---
+# --- Yanıt ile ilgili seçiciler ---
 RESPONSE_CONTAINER_SELECTOR = '.response-meesage-container, .response-message-body--media'
 RESPONSE_TEXT_SELECTOR = '.markdown-content-container'
 
-# --- 加载和状态选择器 ---
+# --- Yükleme ve durum seçicileri ---
 LOADING_SPINNER_SELECTOR = '.running-panel-text-loading, .qwen-chat-loading-icon'
 OVERLAY_SELECTOR = 'div[role="dialog"]'
 
-# --- 错误提示选择器 ---
+# --- Hata bildirimi seçicisi ---
 ERROR_TOAST_SELECTOR = '.toast-warning, .toast-error, .chat-toast'
 
-# --- 编辑相关选择器 ---
+# --- Düzenleme ile ilgili seçiciler ---
 EDIT_MESSAGE_BUTTON_SELECTOR = '[data-qwen-not-supported]'
 MESSAGE_TEXTAREA_SELECTOR = '[data-qwen-not-supported]'
 FINISH_EDIT_BUTTON_SELECTOR = '[data-qwen-not-supported]'
 
-# --- 菜单和复制相关选择器 ---
+# --- Menü ve kopyalama seçicileri ---
 MORE_OPTIONS_BUTTON_SELECTOR = 'button[data-testid="message-actions"]'
 COPY_MARKDOWN_BUTTON_SELECTOR = 'button[data-testid="copy-markdown"]'
 COPY_MARKDOWN_BUTTON_SELECTOR_ALT = 'button[data-testid="copy"]'
 
-# --- 设置相关选择器 ---
+# --- Ayarlar seçicileri ---
 MAX_OUTPUT_TOKENS_SELECTOR = '[data-qwen-not-supported]'
 STOP_SEQUENCE_INPUT_SELECTOR = '[data-qwen-not-supported]'
 MAT_CHIP_REMOVE_BUTTON_SELECTOR = '[data-qwen-not-supported]'

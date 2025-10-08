@@ -11,13 +11,13 @@ import sys
 import platform
 import logging
 import logging.handlers
-import socket # 保留 socket 以便在 __main__ 中进行简单的直接运行提示
+import socket # __main__ içinde basit doğrudan çalıştırma ipucu için socket'i sakla
 from asyncio import Queue, Lock, Future, Task, Event
 
-# 新增: 导入 load_dotenv
+# Yeni: load_dotenv'i içe aktar
 from dotenv import load_dotenv
 
-# 新增: 在所有其他导入之前加载 .env 文件
+# Yeni: Tüm diğer içe aktarmalardan önce .env dosyasını yükle
 load_dotenv()
 
 from fastapi import FastAPI, Request, HTTPException
@@ -33,10 +33,10 @@ import aiohttp
 import stream
 import queue
 
-# --- 配置模块导入 ---
+# --- Yapılandırma modülü içe aktarmaları ---
 from config import *
 
-# --- models模块导入 ---
+# --- models modülü içe aktarmaları ---
 from models import (
     FunctionCall,
     ToolCall,
@@ -49,10 +49,10 @@ from models import (
     WebSocketLogHandler
 )
 
-# --- logging_utils模块导入 ---
+# --- logging_utils modülü içe aktarmaları ---
 from logging_utils import setup_server_logging, restore_original_streams
 
-# --- browser_utils模块导入 ---
+# --- browser_utils modülü içe aktarmaları ---
 from browser_utils import (
     _initialize_page_logic,
     _close_page_logic,
@@ -71,7 +71,7 @@ from browser_utils import (
     _set_model_from_page_display
 )
 
-# --- api_utils模块导入 ---
+# --- api_utils modülü içe aktarmaları ---
 from api_utils import (
     generate_sse_chunk,
     generate_sse_stop_chunk, 
@@ -99,7 +99,7 @@ is_browser_connected = False
 is_page_ready = False
 is_initializing = False
 
-# --- 全局代理配置 ---
+# --- Global proxy yapılandırması ---
 PLAYWRIGHT_PROXY_SETTINGS: Optional[Dict[str, str]] = None
 
 global_model_list_raw_json: Optional[List[Any]] = None
@@ -123,7 +123,7 @@ logger = logging.getLogger("AIStudioProxyServer")
 log_ws_manager = None
 
 
-# --- FastAPI App 定义 ---
+# --- FastAPI App tanımı ---
 app = create_app()
 
 # --- Main Guard ---

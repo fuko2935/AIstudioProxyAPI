@@ -73,8 +73,8 @@ async def _dismiss_dropdown_blockers(page, req_id: str = "unknown", attempts: in
         "button:has-text('Stop')",
         "button:has-text('Stay logged out')",
         "button:has-text('Continue without logging in')",
-        "button:has-text('继续未登录')",
-        "button:has-text('暂不登录')",
+        "button:has-text('\\u7ee7\\u7eed\\u672a\\u767b\\u5f55')",
+        "button:has-text('\\u6682\\u4e0d\\u767b\\u5f55')",
         "div[role='dialog'] button:has-text('Stay logged out')",
         "text='Stay logged out'",
         "text='Continue without logging in'",
@@ -92,12 +92,12 @@ async def _dismiss_dropdown_blockers(page, req_id: str = "unknown", attempts: in
 
             blocker_found = True
             try:
-                logger.info(f"[{req_id}] 检测到阻挡元素 {selector}，尝试关闭。")
+                logger.info(f"[{req_id}] Engelleyen öğe {selector} tespit edildi, kapatmayı deniyoruz.")
                 await locator.click(force=True)
                 dismissed_any = True
                 await asyncio.sleep(0.15)
             except Exception as click_err:
-                logger.debug(f"[{req_id}] 阻挡元素 {selector} 点击失败：{click_err}")
+                logger.debug(f"[{req_id}] Engelleyen öğe {selector} tıklanamadı: {click_err}")
             finally:
                 # Regardless of click result, stop trying this selector in this cycle.
                 break
@@ -136,10 +136,10 @@ async def _set_model_from_page_display(page, req_id: str = "unknown") -> Optiona
 
 
 async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dict[str, Any]]:
-    """打开模型选择器并解析可用模型列表。"""
+    """Model seçiciyi açar ve kullanılabilir modelleri ayrıştırır."""
 
     if not page or page.is_closed():
-        logger.warning(f"[{req_id}] 页面不可用，无法刷新模型目录。")
+        logger.warning(f"[{req_id}] Sayfa kullanılabilir değil; model kataloğu yenilenemiyor.")
         return []
 
     menu_opened = False
@@ -163,12 +163,12 @@ async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dic
                 break
             except Exception as click_err:
                 click_error = click_err
-                logger.warning(f"[{req_id}] 模型选择按钮点击失败（尝试 {attempt + 1}）：{click_err}")
+                logger.warning(f"[{req_id}] Model seçim düğmesine tıklanamadı (deneme {attempt + 1}): {click_err}")
                 await _dismiss_dropdown_blockers(page, req_id=req_id)
                 await asyncio.sleep(0.2)
 
         if not menu_opened:
-            logger.info(f"[{req_id}] 使用 JavaScript click() 作为兜底方案打开模型选择器。")
+            logger.info(f"[{req_id}] Model seçiciyi açmak için yedek yöntem olarak JavaScript click() kullanılacak.")
             clicked_via_js = await page.evaluate(
                 """(selector) => {
                     const el = document.querySelector(selector);
@@ -182,7 +182,7 @@ async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dic
             )
 
             if not clicked_via_js:
-                logger.error(f"[{req_id}] JavaScript click() 打开模型选择器失败。")
+                logger.error(f"[{req_id}] JavaScript click() model seçiciyi açmada başarısız oldu.")
                 if click_error:
                     raise click_error
                 raise RuntimeError("Failed to open model selector via JavaScript click().")
@@ -233,10 +233,10 @@ async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dic
             )
 
             if not raw_nodes:
-                logger.warning(f"[{req_id}] 模型下拉选项解析失败，返回默认列表。")
+                logger.warning(f"[{req_id}] Model açılır seçenekleri ayrıştırılamadı; varsayılan listeye dönülüyor.")
                 return get_default_qwen_models()
 
-            logger.info(f"[{req_id}] 未找到 aria 标签，使用 DOM 扫描结果解析 {len(raw_nodes)} 个模型选项。")
+            logger.info(f"[{req_id}] Aria etiketi bulunamadı; DOM tarama sonucu {len(raw_nodes)} model seçeneği ayrıştırılıyor.")
 
             for entry in raw_nodes:
                 raw_text = (entry.get("text") or "").strip()
@@ -279,7 +279,7 @@ async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dic
 
 
         await expect_async(menu_items.first).to_be_visible(timeout=15000)
-        logger.info(f"[{req_id}] 检测到 {item_count} 个模型选项，开始解析。")
+        logger.info(f"[{req_id}] {item_count} model seçeneği tespit edildi, ayrıştırma başlatılıyor.")
 
         for index in range(item_count):
             option = menu_items.nth(index)
@@ -357,15 +357,15 @@ async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dic
             })
 
         models.sort(key=lambda item: item.get("display_name", "").lower())
-        logger.info(f"[{req_id}] 模型目录刷新完成，共解析 {len(models)} 个模型。")
+        logger.info(f"[{req_id}] Model kataloğu yenilendi; toplam {len(models)} model ayrıştırıldı.")
         return models
 
     except PlaywrightAsyncError as playwright_err:
-        logger.error(f"[{req_id}] 通过UI刷新模型目录时发生Playwright错误: {playwright_err}")
+        logger.error(f"[{req_id}] Arayüz üzerinden model kataloğu yenilenirken Playwright hatası oluştu: {playwright_err}")
         await save_error_snapshot(f"model_catalog_refresh_error_{req_id}")
         raise
     except Exception as exc:
-        logger.exception(f"[{req_id}] 刷新模型目录时发生未知错误: {exc}")
+        logger.exception(f"[{req_id}] Model kataloğu yenilenirken bilinmeyen bir hata oluştu: {exc}")
         await save_error_snapshot(f"model_catalog_refresh_error_{req_id}")
         raise
     finally:
@@ -374,7 +374,7 @@ async def refresh_model_catalog(page, req_id: str = "model-refresh") -> List[Dic
                 await page.keyboard.press('Escape')
                 await asyncio.sleep(0.1)
             except Exception as close_err:
-                logger.debug(f"[{req_id}] 关闭模型选择器时发生非致命错误: {close_err}")
+                logger.debug(f"[{req_id}] Model seçiciyi kapatırken kritik olmayan bir hata oluştu: {close_err}")
 
 async def switch_ai_studio_model(page, model_id: str, req_id: str) -> bool:
     """Switch Qwen model through the dropdown menu."""
@@ -427,8 +427,8 @@ async def switch_ai_studio_model(page, model_id: str, req_id: str) -> bool:
                 stop_selectors = [
                     "button[aria-label='Stop generating']",
                     "button:has-text('Stop')",
-                    "button:has-text('停止')",
-                    "button:has-text('停止生成')",
+                    "button:has-text('\\u505c\\u6b62')",
+                    "button:has-text('\\u505c\\u6b62\\u751f\\u6210')",
                 ]
                 for selector in stop_selectors:
                     stop_button = page.locator(selector)
@@ -483,4 +483,3 @@ async def _handle_initial_model_state_and_storage(page) -> None:
         logger.error("Initial Qwen chat input did not appear in time.")
         await save_error_snapshot("initial_setup_timeout")
         raise
-

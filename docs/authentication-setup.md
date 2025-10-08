@@ -1,18 +1,18 @@
-# 首次运行与认证设置指南
+# İlk Çalıştırma ve Kimlik Doğrulama Kurulum Kılavuzu
 
-> **注意**：目前项目默认以 Qwen 访客模式运行（`ENABLE_QWEN_LOGIN_SUPPORT=false`），无需执行本指南中的任意步骤。只有在你明确启用了 `ENABLE_QWEN_LOGIN_SUPPORT=true` 并需要手动登录时，才需要参考以下说明。
+> **Not**: Proje şu anda varsayılan olarak Qwen misafir modunda çalışmaktadır (`ENABLE_QWEN_LOGIN_SUPPORT=false`), bu kılavuzdaki adımlardan herhangi birini gerçekleştirmenize gerek yoktur. Yalnızca `ENABLE_QWEN_LOGIN_SUPPORT=true`'yi açıkça etkinleştirdiyseniz ve manuel olarak oturum açmanız gerekiyorsa, aşağıdaki talimatlara başvurmanız gerekir.
 
-为了避免每次启动都手动登录 AI Studio，你需要先通过 [`launch_camoufox.py --debug`](../launch_camoufox.py) 模式或 [`gui_launcher.py`](../gui_launcher.py) 的有头模式运行一次来生成认证文件。
+Her başlatmada AI Studio'da manuel olarak oturum açmaktan kaçınmak için, önce bir kimlik doğrulama dosyası oluşturmak üzere [`launch_camoufox.py --debug`](../launch_camoufox.py) modunu veya [`gui_launcher.py`](../gui_launcher.py)'nin başlıklı modunu bir kez çalıştırmanız gerekir.
 
-## 认证文件的重要性
+## Kimlik Doğrulama Dosyasının Önemi
 
-**认证文件是无头模式的关键**: 无头模式依赖于 `auth_profiles/active/` 目录下的有效 `.json` 文件来维持登录状态和访问权限。**文件可能会过期**，需要定期通过 [`launch_camoufox.py --debug`](../launch_camoufox.py) 模式手动运行、登录并保存新的认证文件来替换更新。
+**Kimlik doğrulama dosyası başsız modun anahtarıdır**: Başsız mod, oturum açma durumunu ve erişim izinlerini korumak için `auth_profiles/active/` dizinindeki geçerli `.json` dosyalarına dayanır. **Dosyaların süresi dolabilir** ve yeni kimlik doğrulama dosyalarını değiştirmek ve güncellemek için [`launch_camoufox.py --debug`](../launch_camoufox.py) modunu manuel olarak çalıştırarak, oturum açarak ve kaydederek düzenli olarak güncellenmesi gerekir.
 
-## 方法一：通过命令行运行 Debug 模式
+## Yöntem Bir: Komut Satırı Aracılığıyla Hata Ayıklama Modunu Çalıştırma
 
-**推荐使用 .env 配置方式**:
+**.env yapılandırma yöntemini kullanmanız önerilir**:
 ```env
-# .env 文件配置
+# .env dosya yapılandırması
 DEFAULT_FASTAPI_PORT=2048
 STREAM_PORT=0
 LAUNCH_MODE=normal
@@ -20,64 +20,64 @@ DEBUG_LOGS_ENABLED=true
 ```
 
 ```bash
-# 简化启动命令 (推荐)
+# Basitleştirilmiş başlatma komutu (önerilir)
 python launch_camoufox.py --debug
 
-# 传统命令行方式 (仍然支持)
+# Geleneksel komut satırı yöntemi (hala desteklenmektedir)
 python launch_camoufox.py --debug --server-port 2048 --stream-port 0 --helper '' --internal-camoufox-proxy ''
 ```
 
-**重要参数说明:**
-*   `--debug`: 启动有头模式，用于首次认证和调试
-*   `--server-port <端口号>`: 指定 FastAPI 服务器监听的端口 (默认: 2048)
-*   `--stream-port <端口号>`: 启动集成的流式代理服务端口 (默认: 3120)。设置为 `0` 可禁用此服务，首次启动建议禁用
-*   `--helper <端点URL>`: 指定外部 Helper 服务的地址。设置为空字符串 `''` 表示不使用外部 Helper
-*   `--internal-camoufox-proxy <代理地址>`: 为 Camoufox 浏览器指定代理。设置为空字符串 `''` 表示不使用代理
-*   **注意**: 如果需要启用流式代理服务，建议同时配置 `--internal-camoufox-proxy` 参数以确保正常运行
+**Önemli Parametre Açıklamaları:**
+*   `--debug`: İlk kimlik doğrulama ve hata ayıklama için başlıklı modu başlatır
+*   `--server-port <port_number>`: FastAPI sunucusunun dinleyeceği bağlantı noktasını belirtir (varsayılan: 2048)
+*   `--stream-port <port_number>`: Entegre akış proxy hizmeti bağlantı noktasını başlatır (varsayılan: 3120). Bu hizmeti devre dışı bırakmak için `0` olarak ayarlayın, ilk başlatma için devre dışı bırakılması önerilir
+*   `--helper <endpoint_url>`: Harici bir Yardımcı hizmetinin adresini belirtir. Harici bir Yardımcı kullanmamak için boş bir dize `''` olarak ayarlayın
+*   `--internal-camoufox-proxy <proxy_address>`: Camoufox tarayıcısı için bir proxy belirtir. Proxy kullanmamak için boş bir dize `''` olarak ayarlayın
+*   **Not**: Akış proxy hizmetini etkinleştirmeniz gerekiyorsa, normal çalışmayı sağlamak için `--internal-camoufox-proxy` parametresini de yapılandırmanız önerilir
 
-### 操作步骤
+### İşlem Adımları
 
-1. 脚本会启动 Camoufox（通过内部调用自身），并在终端输出启动信息。
-2. 你会看到一个 **带界面的 Firefox 浏览器窗口** 弹出。
-3. **关键交互:** **在弹出的浏览器窗口中完成 Google 登录**，直到看到 AI Studio 聊天界面。 (脚本会自动处理浏览器连接，无需用户手动操作)。
-4. **登录确认操作**: 当系统检测到登录页面并在终端显示类似以下提示时：
+1. Betik, Camoufox'u başlatır (kendisini dahili olarak çağırarak) ve terminalde başlatma bilgilerini yazdırır.
+2. **Arayüzlü bir Firefox tarayıcı penceresinin** açıldığını göreceksiniz.
+3. **Kritik Etkileşim:** **Açılan tarayıcı penceresinde Google ile oturum açın**, AI Studio sohbet arayüzünü görene kadar. (Betik, tarayıcı bağlantısını otomatik olarak yönetir, kullanıcı tarafından manuel işlem gerekmez).
+4. **Oturum Açma Onay İşlemi**: Sistem bir oturum açma sayfası algıladığında ve terminalde aşağıdakine benzer bir istem görüntülendiğinde:
    ```
-   检测到可能需要登录。如果浏览器显示登录页面，请在浏览器窗口中完成 Google 登录，然后在此处按 Enter 键继续...
+   Oturum açma gerekebilir. Tarayıcı bir oturum açma sayfası görüntülüyorsa, lütfen tarayıcı penceresinde Google ile oturum açın ve ardından devam etmek için burada Enter tuşuna basın...
    ```
-   **用户必须在终端中按 Enter 键确认操作才能继续**。这个确认步骤是必需的，系统会等待用户的确认输入才会进行下一步的登录状态检查。
-5. 回到终端根据提示回车即可，如果设置使用非自动保存模式（即将弃用），请根据提示保存认证时输入 `y` 并回车 (文件名可默认)。文件会保存在 `auth_profiles/saved/`。
-6. **将 `auth_profiles/saved/` 下新生成的 `.json` 文件移动到 `auth_profiles/active/` 目录。** 确保 `active` 目录下只有一个 `.json` 文件。
-7. 可以按 `Ctrl+C` 停止 `--debug` 模式的运行。
+   **Kullanıcının devam etmek için terminalde Enter tuşuna basarak işlemi onaylaması gerekir**. Bu onay adımı gereklidir ve sistem, bir sonraki oturum açma durumu kontrolüne geçmeden önce kullanıcının onay girişini bekleyecektir.
+5. Terminale geri dönün ve istemlere göre Enter'a basın. Otomatik olmayan kaydetme modunu kullanacak şekilde ayarlanmışsa (kullanımdan kaldırılacak), kimlik doğrulamasını kaydederken istemlere göre `y` yazın ve Enter'a basın (dosya adı varsayılan olabilir). Dosya `auth_profiles/saved/` içine kaydedilecektir.
+6. **`auth_profiles/saved/` altındaki yeni oluşturulan `.json` dosyasını `auth_profiles/active/` dizinine taşıyın.** `active` dizininde yalnızca bir `.json` dosyası olduğundan emin olun.
+7. `--debug` modunun çalışmasını durdurmak için `Ctrl+C` tuşlarına basabilirsiniz.
 
-## 方法二：通过 GUI 启动有头模式
+## Yöntem İki: GUI Aracılığıyla Başlıklı Modu Başlatma
 
-1. 运行 `python gui_launcher.py`。
-2. 在 GUI 中输入 `FastAPI 服务端口` (默认为 2048)。
-3. 点击 `启动有头模式` 按钮。
-4. 在弹出的新控制台和浏览器窗口中，按照命令行方式的提示进行 Google 登录和认证文件保存操作。
-5. 同样需要手动将认证文件从 `auth_profiles/saved/` 移动到 `auth_profiles/active/`便于无头模式正常使用。
+1. `python gui_launcher.py` komutunu çalıştırın.
+2. GUI'de `FastAPI Hizmet Bağlantı Noktasını` girin (varsayılan 2048'dir).
+3. `Başlıklı Modu Başlat` düğmesine tıklayın.
+4. Açılan yeni konsol ve tarayıcı penceresinde, Google ile oturum açmak ve kimlik doğrulama dosyasını kaydetmek için komut satırı yöntemindeki istemleri izleyin.
+5. Başsız modun normal şekilde kullanılabilmesi için kimlik doğrulama dosyasını `auth_profiles/saved/` dizininden `auth_profiles/active/` dizinine manuel olarak taşımanız da gerekir.
 
-## 激活认证文件
+## Kimlik Doğrulama Dosyasını Etkinleştirme
 
-1. 进入 `auth_profiles/saved/` 目录，找到刚才保存的 `.json` 认证文件。
-2. 将这个 `.json` 文件 **移动或复制** 到 `auth_profiles/active/` 目录下。
-3. **重要:** 确保 `auth_profiles/active/` 目录下 **有且仅有一个 `.json` 文件**。无头模式启动时会自动加载此目录下的第一个 `.json` 文件。
+1. `auth_profiles/saved/` dizinine gidin ve az önce kaydettiğiniz `.json` kimlik doğrulama dosyasını bulun.
+2. Bu `.json` dosyasını `auth_profiles/active/` dizinine **taşıyın veya kopyalayın**.
+3. **Önemli:** `auth_profiles/active/` dizininde **yalnızca bir `.json` dosyası olduğundan emin olun**. Başsız mod başlatıldığında bu dizindeki ilk `.json` dosyasını otomatik olarak yükleyecektir.
 
-## 认证文件过期处理
+## Kimlik Doğrulama Dosyası Süresinin Dolması İşlemi
 
-**认证文件会过期!** Google 的登录状态不是永久有效的。当无头模式启动失败并报告认证错误或重定向到登录页时，意味着 `active` 目录下的认证文件已失效。你需要：
+**Kimlik doğrulama dosyalarının süresi dolar!** Google'ın oturum açma durumu kalıcı değildir. Başsız mod başlatılamadığında ve bir kimlik doğrulama hatası bildirdiğinde veya oturum açma sayfasına yönlendirildiğinde, `active` dizinindeki kimlik doğrulama dosyasının süresinin dolduğu anlamına gelir. Şunları yapmanız gerekir:
 
-1. 删除 `active` 目录下的旧文件。
-2. 重新执行上面的 **【通过命令行运行 Debug 模式】** 或 **【通过 GUI 启动有头模式】** 步骤，生成新的认证文件。
-3. 将新生成的 `.json` 文件再次移动到 `active` 目录下。
+1. `active` dizinindeki eski dosyayı silin.
+2. Yeni bir kimlik doğrulama dosyası oluşturmak için yukarıdaki **[Komut Satırı Aracılığıyla Hata Ayıklama Modunu Çalıştırma]** veya **[GUI Aracılığıyla Başlıklı Modu Başlatma]** adımlarını yeniden gerçekleştirin.
+3. Yeni oluşturulan `.json` dosyasını tekrar `active` dizinine taşıyın.
 
-## 重要提示
+## Önemli İpuçları
 
-*   **首次访问新主机的性能问题**: 当通过流式代理首次访问一个新的 HTTPS 主机时，服务需要为该主机动态生成并签署一个新的子证书。这个过程可能会比较耗时，导致对该新主机的首次连接请求响应较慢，甚至在某些情况下可能被主程序（如 [`server.py`](../server.py) 中的 Playwright 交互逻辑）误判为浏览器加载超时。一旦证书生成并缓存后，后续访问同一主机将会显著加快。
+*   **Yeni bir ana bilgisayara ilk erişimde performans sorunları**: Akış proxy'si aracılığıyla yeni bir HTTPS ana bilgisayarına ilk kez erişildiğinde, hizmetin o ana bilgisayar için dinamik olarak yeni bir alt sertifika oluşturması ve imzalaması gerekir. Bu işlem zaman alıcı olabilir, bu da o yeni ana bilgisayara ilk bağlantı isteğinin yavaş yanıt vermesine ve hatta bazı durumlarda ana program (örneğin [`server.py`](../server.py)'deki Playwright etkileşim mantığı) tarafından tarayıcı yükleme zaman aşımı olarak yanlış yorumlanmasına neden olabilir. Sertifika oluşturulup önbelleğe alındıktan sonra, aynı ana bilgisayara sonraki erişimler önemli ölçüde hızlanacaktır.
 
-## 下一步
+## Sonraki Adımlar
 
-认证设置完成后，请参考：
-- [日常运行指南](daily-usage.md)
-- [API 使用指南](api-usage.md)
-- [Web UI 使用指南](webui-guide.md)
+Kimlik doğrulama kurulumu tamamlandıktan sonra, lütfen şunlara bakın:
+- [Günlük Kullanım Kılavuzu](daily-usage.md)
+- [API Kullanım Kılavuzu](api-usage.md)
+- [Web UI Kullanım Kılavuzu](webui-guide.md)

@@ -1,10 +1,10 @@
-# AI Studio Proxy API 一键安装脚本 (Windows PowerShell)
-# 使用 Poetry 进行依赖管理
+# AI Studio Proxy API Tek Tık Kurulum Scripti (Windows PowerShell)
+# Modern Bağımlılık Yönetimi için Poetry Kullanımı
 
-# 设置错误处理
+# Hata işleme ayarla
 $ErrorActionPreference = "Stop"
 
-# 颜色函数
+# Renk Fonksiyonları
 function Write-ColorOutput {
     param(
         [string]$Message,
@@ -33,7 +33,7 @@ function Log-Error {
     Write-ColorOutput "[ERROR] $Message" "Red"
 }
 
-# 检查命令是否存在
+# Komutun var olup olmadığını kontrol et
 function Test-Command {
     param([string]$Command)
     try {
@@ -45,9 +45,9 @@ function Test-Command {
     }
 }
 
-# 检查 Python 版本
+# Python sürümünü kontrol et
 function Test-Python {
-    Log-Info "检查 Python 版本..."
+    Log-Info "Python sürümünü kontrol et..."
     
     $pythonCmd = $null
     if (Test-Command "python") {
@@ -57,7 +57,7 @@ function Test-Python {
         $pythonCmd = "py"
     }
     else {
-        Log-Error "未找到 Python。请先安装 Python 3.9+"
+        Log-Error "Python bulunamadı. Lütfen önce Python 3.9+ yükleyin."
         exit 1
     }
     
@@ -70,165 +70,165 @@ function Test-Python {
             $minor = [int]$matches[2]
             
             if ($major -lt 3 -or ($major -eq 3 -and $minor -lt 9)) {
-                Log-Error "Python 版本过低: $pythonVersion。需要 Python 3.9+"
+                Log-Error "Python sürümü çok düşük: $pythonVersion. Python 3.9+ gerekli."
                 exit 1
             }
             
-            Log-Success "Python 版本: $pythonVersion ✓"
+            Log-Success "Python sürümü: $pythonVersion ✓"
             return $pythonCmd
         }
         else {
-            Log-Error "无法解析 Python 版本"
+            Log-Error "Python sürümü çözümlenemiyor"
             exit 1
         }
     }
     catch {
-        Log-Error "Python 版本检查失败: $_"
+        Log-Error "Python sürüm kontrolü başarısız: $_"
         exit 1
     }
 }
 
-# 安装 Poetry
+# Poetry'yi Yükle
 function Install-Poetry {
     if (Test-Command "poetry") {
-        Log-Success "Poetry 已安装 ✓"
+        Log-Success "Poetry yüklü ✓"
         return
     }
     
-    Log-Info "安装 Poetry..."
+    Log-Info "Poetry yükleniyor..."
     try {
         (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
         
-        # 刷新环境变量
+        # Çevre değişkenlerini yenile
         $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
         
         if (Test-Command "poetry") {
-            Log-Success "Poetry 安装成功 ✓"
+            Log-Success "Poetry yükleme başarılı ✓"
         }
         else {
-            Log-Error "Poetry 安装失败。请手动安装 Poetry"
+            Log-Error "Poetry yükleme başarısız. Lütfen Poetry'yi manuel olarak yükleyin."
             exit 1
         }
     }
     catch {
-        Log-Error "Poetry 安装失败: $_"
+        Log-Error "Poetry yükleme başarısız: $_"
         exit 1
     }
 }
 
-# 克隆项目
+# Projeyi Klonla
 function Clone-Project {
-    Log-Info "克隆项目..."
+    Log-Info "Proje klonlanıyor..."
     
     if (Test-Path "AIstudioProxyAPI") {
-        Log-Warning "项目目录已存在，跳过克隆"
+        Log-Warning "Proje dizini mevcut, klonlama atlandı"
         Set-Location "AIstudioProxyAPI"
     }
     else {
         try {
             git clone https://github.com/CJackHwang/AIstudioProxyAPI.git
             Set-Location "AIstudioProxyAPI"
-            Log-Success "项目克隆成功 ✓"
+            Log-Success "Proje klonlama başarılı ✓"
         }
         catch {
-            Log-Error "项目克隆失败: $_"
+            Log-Error "Proje klonlama başarısız: $_"
             exit 1
         }
     }
 }
 
-# 安装依赖
+# Bağımlılıkları Yükle
 function Install-Dependencies {
-    Log-Info "安装项目依赖..."
+    Log-Info "Proje bağımlılıkları yükleniyor..."
     try {
         poetry install
-        Log-Success "依赖安装成功 ✓"
+        Log-Success "Bağımlılık yükleme başarılı ✓"
     }
     catch {
-        Log-Error "依赖安装失败: $_"
+        Log-Error "Bağımlılık yükleme başarısız: $_"
         exit 1
     }
 }
 
-# 下载 Camoufox
+# Camoufox'u İndir
 function Download-Camoufox {
-    Log-Info "下载 Camoufox 浏览器..."
+    Log-Info "Camoufox tarayıcısı indiriliyor..."
     try {
         poetry run camoufox fetch
-        Log-Success "Camoufox 下载成功 ✓"
+        Log-Success "Camoufox indirme başarılı ✓"
     }
     catch {
-        Log-Warning "Camoufox 下载失败，但不影响主要功能: $_"
+        Log-Warning "Camoufox indirme başarısız, ancak ana işlevleri etkilemiyor: $_"
     }
 }
 
-# 安装 Playwright 依赖
+# Playwright Bağımlılıklarını Yükle
 function Install-PlaywrightDeps {
-    Log-Info "安装 Playwright 依赖..."
+    Log-Info "Playwright bağımlılıkları yükleniyor..."
     try {
         poetry run playwright install-deps firefox
     }
     catch {
-        Log-Warning "Playwright 依赖安装失败，但不影响主要功能"
+        Log-Warning "Playwright bağımlılık yükleme başarısız, ancak ana işlevleri etkilemiyor"
     }
 }
 
-# 创建配置文件
+# Yapılandırma Dosyası Oluştur
 function Create-Config {
-    Log-Info "创建配置文件..."
+    Log-Info "Yapılandırma dosyası oluşturuluyor..."
     
     if (!(Test-Path ".env") -and (Test-Path ".env.example")) {
         Copy-Item ".env.example" ".env"
-        Log-Success "配置文件创建成功 ✓"
-        Log-Info "请编辑 .env 文件进行个性化配置"
+        Log-Success "Yapılandırma dosyası oluşturma başarılı ✓"
+        Log-Info "Kişisel yapılandırma için .env dosyasını düzenleyin"
     }
     else {
-        Log-Warning "配置文件已存在或模板不存在"
+        Log-Warning "Yapılandırma dosyası mevcut veya şablon yok"
     }
 }
 
-# 验证安装
+# Kurulumu Doğrula
 function Test-Installation {
-    Log-Info "验证安装..."
+    Log-Info "Kurulum doğrulanıyor..."
     
     try {
-        # 检查 Poetry 环境
+        # Poetry ortamını kontrol et
         poetry env info | Out-Null
-        
-        # 检查关键依赖
+
+        # Kritik bağımlılıkları kontrol et
         poetry run python -c "import fastapi, playwright, camoufox"
         
-        Log-Success "安装验证成功 ✓"
+        Log-Success "Kurulum doğrulaması başarılı ✓"
     }
     catch {
-        Log-Error "安装验证失败: $_"
+        Log-Error "Kurulum doğrulaması başarısız: $_"
         exit 1
     }
 }
 
-# 显示后续步骤
+# Sonraki Adımları Göster
 function Show-NextSteps {
     Write-Host ""
-    Log-Success "🎉 安装完成！"
+    Log-Success "🎉 Kurulum tamamlandı!"
     Write-Host ""
-    Write-Host "后续步骤："
-    Write-Host "1. 进入项目目录: cd AIstudioProxyAPI"
-    Write-Host "2. 激活虚拟环境: poetry env activate"
-    Write-Host "3. 配置环境变量: notepad .env"
-    Write-Host "4. 首次认证设置: poetry run python launch_camoufox.py --debug"
-    Write-Host "5. 日常运行: poetry run python launch_camoufox.py --headless"
+    Write-Host "Sonraki adımlar:"
+    Write-Host "1. Proje dizinine gir: cd AIstudioProxyAPI"
+    Write-Host "2. Sanal ortamı etkinleştir: poetry env activate"
+    Write-Host "3. Çevre değişkenlerini yapılandır: notepad .env"
+    Write-Host "4. İlk kimlik doğrulama ayarı: poetry run python launch_camoufox.py --debug"
+    Write-Host "5. Günlük çalışma: poetry run python launch_camoufox.py --headless"
     Write-Host ""
-    Write-Host "详细文档："
-    Write-Host "- 环境配置: docs/environment-configuration.md"
-    Write-Host "- 认证设置: docs/authentication-setup.md"
-    Write-Host "- 日常使用: docs/daily-usage.md"
+    Write-Host "Detaylı dokümantasyon:"
+    Write-Host "- Çevre yapılandırması: docs/environment-configuration.md"
+    Write-Host "- Kimlik doğrulama ayarı: docs/authentication-setup.md"
+    Write-Host "- Günlük kullanım: docs/daily-usage.md"
     Write-Host ""
 }
 
-# 主函数
+# Ana fonksiyon
 function Main {
-    Write-Host "🚀 AI Studio Proxy API 一键安装脚本"
-    Write-Host "使用 Poetry 进行现代化依赖管理"
+    Write-Host "🚀 AI Studio Proxy API Tek Tık Kurulum Scripti"
+    Write-Host "Modern Bağımlılık Yönetimi için Poetry Kullanımı"
     Write-Host ""
 
     $pythonCmd = Test-Python
@@ -242,11 +242,11 @@ function Main {
     Show-NextSteps
 }
 
-# 运行主函数
+# Ana fonksiyonu çalıştır
 try {
     Main
 }
 catch {
-    Log-Error "安装过程中发生错误: $_"
+    Log-Error "Kurulum sırasında hata oluştu: $_"
     exit 1
 }

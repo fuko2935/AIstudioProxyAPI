@@ -1,5 +1,5 @@
 """
-FastAPI 依赖项模块
+FastAPI bağımlılıkları modülü
 """
 import logging
 from asyncio import Queue, Lock, Event

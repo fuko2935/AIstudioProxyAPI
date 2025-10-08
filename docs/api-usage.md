@@ -1,134 +1,134 @@
-# API 使用指南
+# API Kullanım Kılavuzu
 
-本指南详细介绍如何使用 AI Studio Proxy API 的各种功能和端点。
+Bu kılavuz, AI Studio Proxy API'nin çeşitli özelliklerinin ve uç noktalarının nasıl kullanılacağını ayrıntılı olarak açıklar.
 
-## 服务器配置
+## Sunucu Yapılandırması
 
-代理服务器默认监听在 `http://127.0.0.1:2048`。端口可以通过以下方式配置：
+Proxy sunucusu varsayılan olarak `http://127.0.0.1:2048` adresinde dinleme yapar. Bağlantı noktası aşağıdaki yollarla yapılandırılabilir:
 
-- **环境变量**: 在 `.env` 文件中设置 `PORT=2048` 或 `DEFAULT_FASTAPI_PORT=2048`
-- **命令行参数**: 使用 `--server-port` 参数
-- **GUI 启动器**: 在图形界面中直接配置端口
+- **Ortam Değişkenleri**: `.env` dosyasında `PORT=2048` veya `DEFAULT_FASTAPI_PORT=2048` ayarlayın
+- **Komut Satırı Argümanları**: `--server-port` argümanını kullanın
+- **GUI Başlatıcı**: Grafik arayüzde bağlantı noktasını doğrudan yapılandırın
 
-推荐使用 `.env` 文件进行配置管理，详见 [环境变量配置指南](environment-configuration.md)。
+Yapılandırma yönetimi için `.env` dosyasını kullanmanız önerilir, ayrıntılar için [Ortam Değişkeni Yapılandırma Kılavuzu](environment-configuration.md) bölümüne bakın.
 
-## API 密钥配置
+## API Anahtarı Yapılandırması
 
-### key.txt 文件配置
+### key.txt Dosya Yapılandırması
 
-项目使用 `auth_profiles/key.txt` 文件来管理 API 密钥：
+Proje, API anahtarlarını yönetmek için `auth_profiles/key.txt` dosyasını kullanır:
 
-**文件位置**: 项目根目录下的 `key.txt` 文件
+**Dosya Konumu**: Proje kök dizinindeki `key.txt` dosyası
 
-**文件格式**: 每行一个 API 密钥，支持空行和注释
+**Dosya Biçimi**: Her satırda bir API anahtarı, boş satırları ve yorumları destekler
 
 ```
-your-api-key-1
-your-api-key-2
-# 这是注释行，会被忽略
+api-anahtarınız-1
+api-anahtarınız-2
+# Bu bir yorum satırıdır, göz ardı edilecektir
 
-another-api-key
+başka-bir-api-anahtarı
 ```
 
-**自动创建**: 如果 `key.txt` 文件不存在，系统会自动创建一个空文件
+**Otomatik Oluşturma**: `key.txt` dosyası mevcut değilse, sistem otomatik olarak boş bir dosya oluşturur
 
-### 密钥管理方法
+### Anahtar Yönetim Yöntemleri
 
-#### 手动编辑文件
+#### Dosyayı Manuel Olarak Düzenleme
 
-直接编辑 `key.txt` 文件添加或删除密钥：
+Anahtar eklemek veya silmek için `key.txt` dosyasını doğrudan düzenleyin:
 
 ```bash
-# 添加密钥
-echo "your-new-api-key" >> key.txt
+# Anahtar ekle
+echo "yeni-api-anahtarınız" >> key.txt
 
-# 查看当前密钥（注意安全）
+# Mevcut anahtarları görüntüle (güvenliğe dikkat edin)
 cat key.txt
 ```
 
-#### 通过 Web UI 管理
+#### Web Arayüzü Üzerinden Yönetim
 
-在 Web UI 的"设置"标签页中可以：
+Web Arayüzünün "Ayarlar" sekmesinde şunları yapabilirsiniz:
 
-- 验证密钥有效性
-- 查看服务器上配置的密钥列表（需要先验证）
-- 测试特定密钥
+- Anahtar geçerliliğini doğrulama
+- Sunucuda yapılandırılmış anahtar listesini görüntüleme (önce doğrulama gerekir)
+- Belirli bir anahtarı test etme
 
-### 密钥验证机制
+### Anahtar Doğrulama Mekanizması
 
-**验证逻辑**:
+**Doğrulama Mantığı**:
 
-- 如果 `key.txt` 为空或不存在，则不需要 API 密钥验证
-- 如果配置了密钥，则所有 API 请求都需要提供有效的密钥
-- 密钥验证支持两种认证头格式
+- `key.txt` boşsa veya mevcut değilse, API anahtarı doğrulaması gerekmez
+- Anahtarlar yapılandırılmışsa, tüm API istekleri geçerli bir anahtar gerektirir
+- Anahtar doğrulama iki kimlik doğrulama başlığı biçimini destekler
 
-**安全特性**:
+**Güvenlik Özellikleri**:
 
-- 密钥在日志中会被打码显示（如：`abcd****efgh`）
-- Web UI 中的密钥列表也会打码显示
-- 支持最小长度验证（至少 8 个字符）
+- Anahtarlar günlüklerde maskelenmiş olarak gösterilir (ör: `abcd****efgh`)
+- Web Arayüzündeki anahtar listesi de maskelenmiş olarak gösterilir
+- Minimum uzunluk doğrulamasını destekler (en az 8 karakter)
 
-## API 认证流程
+## API Kimlik Doğrulama Süreci
 
-### Bearer Token 认证
+### Bearer Token Kimlik Doğrulaması
 
-项目支持标准的 OpenAI 兼容认证方式：
+Proje, standart OpenAI uyumlu kimlik doğrulama yöntemlerini destekler:
 
-**主要认证方式** (推荐):
+**Ana Kimlik Doğrulama Yöntemi** (önerilir):
 
 ```bash
-Authorization: Bearer your-api-key
+Authorization: Bearer api-anahtarınız
 ```
 
-**备用认证方式** (向后兼容):
+**Alternatif Kimlik Doğrulama Yöntemi** (geriye dönük uyumluluk):
 
 ```bash
-X-API-Key: your-api-key
+X-API-Key: api-anahtarınız
 ```
 
-### 认证行为
+### Kimlik Doğrulama Davranışı
 
-**无密钥配置时**:
+**Anahtar yapılandırması olmadığında**:
 
-- 所有 API 请求都不需要认证
-- `/api/info` 端点会显示 `"api_key_required": false`
+- Tüm API istekleri kimlik doğrulaması gerektirmez
+- `/api/info` uç noktası `"api_key_required": false` gösterecektir
 
-**有密钥配置时**:
+**Anahtar yapılandırması olduğunda**:
 
-- 所有 `/v1/*` 路径的 API 请求都需要有效的密钥
-- 除外路径：`/v1/models`, `/health`, `/docs` 等公开端点
-- 认证失败返回 `401 Unauthorized` 错误
+- `/v1/*` yolundaki tüm API istekleri geçerli bir anahtar gerektirir
+- İstisnalar: `/v1/models`, `/health`, `/docs` gibi genel uç noktalar
+- Kimlik doğrulama hatası `401 Unauthorized` hatası döndürür
 
-### 客户端配置示例
+### İstemci Yapılandırma Örneği
 
-#### curl 示例
+#### curl Örneği
 
 ```bash
-# 使用 Bearer token
+# Bearer token kullanarak
 curl -X POST http://127.0.0.1:2048/v1/chat/completions \
-  -H "Authorization: Bearer your-api-key" \
+  -H "Authorization: Bearer api-anahtarınız" \
   -H "Content-Type: application/json" \
-  -d '{"messages": [{"role": "user", "content": "Hello"}]}'
+  -d '{"messages": [{"role": "user", "content": "Merhaba"}]}'
 
-# 使用 X-API-Key 头
+# X-API-Key başlığını kullanarak
 curl -X POST http://127.0.0.1:2048/v1/chat/completions \
-  -H "X-API-Key: your-api-key" \
+  -H "X-API-Key: api-anahtarınız" \
   -H "Content-Type: application/json" \
-  -d '{"messages": [{"role": "user", "content": "Hello"}]}'
+  -d '{"messages": [{"role": "user", "content": "Merhaba"}]}'
 ```
 
-#### Python requests 示例
+#### Python requests Örneği
 
 ```python
 import requests
 
 headers = {
-    "Authorization": "Bearer your-api-key",
+    "Authorization": "Bearer api-anahtarınız",
     "Content-Type": "application/json"
 }
 
 data = {
-    "messages": [{"role": "user", "content": "Hello"}]
+    "messages": [{"role": "user", "content": "Merhaba"}]
 }
 
 response = requests.post(
@@ -138,19 +138,19 @@ response = requests.post(
 )
 ```
 
-## API 端点
+## API Uç Noktaları
 
-### 聊天接口
+### Sohbet Arayüzü
 
-**端点**: `POST /v1/chat/completions`
+**Uç Nokta**: `POST /v1/chat/completions`
 
-- 请求体与 OpenAI API 兼容，需要 `messages` 数组。
-- `model` 字段现在用于指定目标模型，代理会尝试在 AI Studio 页面切换到该模型。如果为空或为代理的默认模型名，则使用 AI Studio 当前激活的模型。
-- `stream` 字段控制流式 (`true`) 或非流式 (`false`) 输出。
-- 现在支持 `temperature`, `max_output_tokens`, `top_p`, `stop` 等参数，代理会尝试在 AI Studio 页面上应用它们。
-- **需要认证**: 如果配置了 API 密钥，此端点需要有效的认证头。
+- İstek gövdesi OpenAI API ile uyumludur, `messages` dizisi gerektirir.
+- `model` alanı artık hedef modeli belirtmek için kullanılır, proxy AI Studio sayfasında o modele geçmeye çalışacaktır. Boşsa veya proxy'nin varsayılan model adıysa, AI Studio'da o anda etkin olan model kullanılır.
+- `stream` alanı akışlı (`true`) veya akışsız (`false`) çıktıyı kontrol eder.
+- Artık `temperature`, `max_output_tokens`, `top_p`, `stop` gibi parametreleri destekler, proxy bunları AI Studio sayfasında uygulamaya çalışacaktır.
+- **Kimlik Doğrulaması Gerekli**: API anahtarları yapılandırılmışsa, bu uç nokta geçerli bir kimlik doğrulama başlığı gerektirir.
 
-#### 示例 (curl, 非流式, 带参数)
+#### Örnek (curl, akışsız, parametrelerle)
 
 ```bash
 curl -X POST http://127.0.0.1:2048/v1/chat/completions \
@@ -158,18 +158,18 @@ curl -X POST http://127.0.0.1:2048/v1/chat/completions \
 -d '{
   "model": "gemini-1.5-pro-latest",
   "messages": [
-    {"role": "system", "content": "Be concise."},
-    {"role": "user", "content": "What is the capital of France?"}
+    {"role": "system", "content": "Kısa ve öz ol."},
+    {"role": "user", "content": "Fransa'nın başkenti neresidir?"}
   ],
   "stream": false,
   "temperature": 0.7,
   "max_output_tokens": 150,
   "top_p": 0.9,
-  "stop": ["\n\nUser:"]
+  "stop": ["\n\nKullanıcı:"]
 }'
 ```
 
-#### 示例 (curl, 流式, 带参数)
+#### Örnek (curl, akışlı, parametrelerle)
 
 ```bash
 curl -X POST http://127.0.0.1:2048/v1/chat/completions \
@@ -177,7 +177,7 @@ curl -X POST http://127.0.0.1:2048/v1/chat/completions \
 -d '{
   "model": "gemini-pro",
   "messages": [
-    {"role": "user", "content": "Write a short story about a cat."}
+    {"role": "user", "content": "Bir kedi hakkında kısa bir hikaye yaz."}
   ],
   "stream": true,
   "temperature": 0.9,
@@ -186,7 +186,7 @@ curl -X POST http://127.0.0.1:2048/v1/chat/completions \
 }' --no-buffer
 ```
 
-#### 示例 (Python requests)
+#### Örnek (Python requests)
 
 ```python
 import requests
@@ -197,13 +197,13 @@ headers = {"Content-Type": "application/json"}
 data = {
     "model": "gemini-1.5-flash-latest",
     "messages": [
-        {"role": "user", "content": "Translate 'hello' to Spanish."}
+        {"role": "user", "content": "'hello' kelimesini İspanyolca'ya çevir."}
     ],
-    "stream": False, # or True for streaming
+    "stream": False, # veya akış için True
     "temperature": 0.5,
     "max_output_tokens": 100,
     "top_p": 0.9,
-    "stop": ["\n\nHuman:"]
+    "stop": ["\n\nİnsan:"]
 }
 
 response = requests.post(API_URL, headers=headers, json=data, stream=data["stream"])
@@ -215,46 +215,46 @@ if data["stream"]:
             if decoded_line.startswith('data: '):
                 content = decoded_line[len('data: '):]
                 if content.strip() == '[DONE]':
-                    print("\nStream finished.")
+                    print("\nAkış bitti.")
                     break
                 try:
                     chunk = json.loads(content)
                     delta = chunk.get('choices', [{}])[0].get('delta', {})
                     print(delta.get('content', ''), end='', flush=True)
                 except json.JSONDecodeError:
-                    print(f"\nError decoding JSON: {content}")
-            elif decoded_line.startswith('data: {'): # Handle potential error JSON
+                    print(f"\nJSON kodu çözülürken hata oluştu: {content}")
+            elif decoded_line.startswith('data: {'): # Olası hata JSON'unu işle
                 try:
                     error_data = json.loads(decoded_line[len('data: '):])
                     if 'error' in error_data:
-                        print(f"\nError from server: {error_data['error']}")
+                        print(f"\nSunucudan hata: {error_data['error']}")
                         break
                 except json.JSONDecodeError:
-                     print(f"\nError decoding error JSON: {decoded_line}")
+                     print(f"\nHata JSON'u kodu çözülürken hata oluştu: {decoded_line}")
 else:
     if response.status_code == 200:
         print(json.dumps(response.json(), indent=2))
     else:
-        print(f"Error: {response.status_code}\n{response.text}")
+        print(f"Hata: {response.status_code}\n{response.text}")
 ```
 
-### 模型列表
+### Model Listesi
 
-**端点**: `GET /v1/models`
+**Uç Nokta**: `GET /v1/models`
 
-- 返回 AI Studio 页面上检测到的可用模型列表，以及一个代理本身的默认模型条目。
-- 现在会尝试从 AI Studio 动态获取模型列表。如果获取失败，会返回一个后备模型。
-- 支持 [`excluded_models.txt`](../excluded_models.txt) 文件，用于从列表中排除特定的模型 ID。
-- **🆕 脚本注入模型**: 如果启用了脚本注入功能，列表中还会包含通过油猴脚本注入的自定义模型，这些模型会标记为 `"injected": true`。
+- AI Studio sayfasında algılanan kullanılabilir modellerin bir listesini ve proxy'nin kendisi için varsayılan bir model girişini döndürür.
+- Artık AI Studio'dan dinamik olarak model listesini almaya çalışır. Alınamazsa, bir yedek model döndürür.
+- Belirli model kimliklerini listeden çıkarmak için [`excluded_models.txt`](../excluded_models.txt) dosyasını destekler.
+- **🆕 Betik Enjeksiyon Modelleri**: Betik enjeksiyonu özelliği etkinleştirilmişse, liste ayrıca userscript aracılığıyla enjekte edilen özel modelleri de içerir, bu modeller `"injected": true` olarak işaretlenir.
 
-**脚本注入模型特点**:
+**Betik Enjeksiyon Modeli Özellikleri**:
 
-- 模型 ID 格式：注入的模型会自动移除 `models/` 前缀，如 `models/kingfall-ab-test` 变为 `kingfall-ab-test`
-- 标识字段：包含 `"injected": true` 字段用于识别
-- 所有者标识：`"owned_by": "ai_studio_injected"`
-- 完全兼容：可以像普通模型一样通过 API 调用
+- Model ID Formatı: Enjekte edilen modeller `models/` önekini otomatik olarak kaldırır, örneğin `models/kingfall-ab-test`, `kingfall-ab-test` olur
+- Tanımlayıcı Alan: Tanımlama için `"injected": true` alanını içerir
+- Sahip Tanımlayıcı: `"owned_by": "ai_studio_injected"`
+- Tam Uyumlu: API aracılığıyla normal modeller gibi çağrılabilir
 
-**示例响应**:
+**Örnek Yanıt**:
 
 ```json
 {
@@ -266,150 +266,150 @@ else:
       "created": 1703123456,
       "owned_by": "ai_studio_injected",
       "display_name": "👑 Kingfall",
-      "description": "Kingfall model - Advanced reasoning capabilities",
+      "description": "Kingfall modeli - Gelişmiş muhakeme yetenekleri",
       "injected": true
     }
   ]
 }
 ```
 
-### API 信息
+### API Bilgileri
 
-**端点**: `GET /api/info`
+**Uç Nokta**: `GET /api/info`
 
-- 返回 API 配置信息，如基础 URL 和模型名称。
+- Temel URL ve model adı gibi API yapılandırma bilgilerini döndürür.
 
-### 健康检查
+### Sağlık Kontrolü
 
-**端点**: `GET /health`
+**Uç Nokta**: `GET /health`
 
-- 返回服务器运行状态（Playwright, 浏览器连接, 页面状态, Worker 状态, 队列长度）。
+- Sunucu çalışma durumunu (Playwright, tarayıcı bağlantısı, sayfa durumu, Çalışan durumu, kuyruk uzunluğu) döndürür.
 
-### 队列状态
+### Kuyruk Durumu
 
-**端点**: `GET /v1/queue`
+**Uç Nokta**: `GET /v1/queue`
 
-- 返回当前请求队列的详细信息。
+- Mevcut istek kuyruğunun ayrıntılı bilgilerini döndürür.
 
-### 取消请求
+### İsteği İptal Etme
 
-**端点**: `POST /v1/cancel/{req_id}`
+**Uç Nokta**: `POST /v1/cancel/{req_id}`
 
-- 尝试取消仍在队列中等待处理的请求。
+- Hala kuyrukta işlenmeyi bekleyen bir isteği iptal etmeye çalışır.
 
-### API 密钥管理端点
+### API Anahtarı Yönetim Uç Noktaları
 
-#### 获取密钥列表
+#### Anahtar Listesini Al
 
-**端点**: `GET /api/keys`
+**Uç Nokta**: `GET /api/keys`
 
-- 返回服务器上配置的所有 API 密钥列表
-- **注意**: 服务器返回完整密钥，打码显示由 Web UI 前端处理
-- **无需认证**: 此端点不需要 API 密钥认证
+- Sunucuda yapılandırılmış tüm API anahtarlarının bir listesini döndürür
+- **Not**: Sunucu tam anahtarları döndürür, maskeleme Web Arayüzü ön ucu tarafından yapılır
+- **Kimlik Doğrulaması Gerekmez**: Bu uç nokta API anahtarı kimlik doğrulaması gerektirmez
 
-#### 测试密钥
+#### Anahtarı Test Et
 
-**端点**: `POST /api/keys/test`
+**Uç Nokta**: `POST /api/keys/test`
 
-- 验证指定的 API 密钥是否有效
-- 请求体：`{"key": "your-api-key"}`
-- 返回：`{"success": true, "valid": true/false, "message": "..."}`
-- **无需认证**: 此端点不需要 API 密钥认证
+- Belirtilen API anahtarının geçerli olup olmadığını doğrular
+- İstek gövdesi: `{"key": "api-anahtarınız"}`
+- Dönen değer: `{"success": true, "valid": true/false, "message": "..."}`
+- **Kimlik Doğrulaması Gerekmez**: Bu uç nokta API anahtarı kimlik doğrulaması gerektirmez
 
-#### 添加密钥
+#### Anahtar Ekle
 
-**端点**: `POST /api/keys`
+**Uç Nokta**: `POST /api/keys`
 
-- 向服务器添加新的 API 密钥
-- 请求体：`{"key": "your-new-api-key"}`
-- 密钥要求：至少 8 个字符，不能重复
-- **无需认证**: 此端点不需要 API 密钥认证
+- Sunucuya yeni bir API anahtarı ekler
+- İstek gövdesi: `{"key": "yeni-api-anahtarınız"}`
+- Anahtar gereksinimleri: en az 8 karakter, tekrar edemez
+- **Kimlik Doğrulaması Gerekmez**: Bu uç nokta API anahtarı kimlik doğrulaması gerektirmez
 
-#### 删除密钥
+#### Anahtarı Sil
 
-**端点**: `DELETE /api/keys`
+**Uç Nokta**: `DELETE /api/keys`
 
-- 从服务器删除指定的 API 密钥
-- 请求体：`{"key": "key-to-delete"}`
-- **无需认证**: 此端点不需要 API 密钥认证
+- Sunucudan belirtilen API anahtarını siler
+- İstek gövdesi: `{"key": "silinecek-anahtar"}`
+- **Kimlik Doğrulaması Gerekmez**: Bu uç nokta API anahtarı kimlik doğrulaması gerektirmez
 
-## 配置客户端 (以 Open WebUI 为例)
+## İstemciyi Yapılandırma (Örnek olarak Open WebUI)
 
-1. 打开 Open WebUI。
-2. 进入 "设置" -> "连接"。
-3. 在 "模型" 部分，点击 "添加模型"。
-4. **模型名称**: 输入你想要的名字，例如 `aistudio-gemini-py`。
-5. **API 基础 URL**: 输入代理服务器的地址，例如 `http://127.0.0.1:2048/v1` (如果服务器在另一台机器，用其 IP 替换 `127.0.0.1`，并确保端口可访问)。
-6. **API 密钥**: 留空或输入任意字符 (服务器不验证)。
-7. 保存设置。
-8. 现在，你应该可以在 Open WebUI 中选择你在第一步中配置的模型名称并开始聊天了。如果之前配置过，可能需要刷新或重新选择模型以应用新的 API 基地址。
+1. Open WebUI'yi açın.
+2. "Ayarlar" -> "Bağlantılar" bölümüne gidin.
+3. "Modeller" bölümünde, "Model Ekle"ye tıklayın.
+4. **Model Adı**: İstediğiniz bir ad girin, örneğin `aistudio-gemini-py`.
+5. **API Temel URL'si**: Proxy sunucusunun adresini girin, örneğin `http://127.0.0.1:2048/v1` (sunucu başka bir makinedeyse, `127.0.0.1`'i IP'siyle değiştirin ve bağlantı noktasının erişilebilir olduğundan emin olun).
+6. **API Anahtarı**: Boş bırakın veya herhangi bir karakter girin (sunucu doğrulamaz).
+7. Ayarları kaydedin.
+8. Artık Open WebUI'de ilk adımda yapılandırdığınız model adını seçip sohbete başlayabilmelisiniz. Daha önce yapılandırdıysanız, yeni API temel adresini uygulamak için modeli yenilemeniz veya yeniden seçmeniz gerekebilir.
 
-## 重要提示
+## Önemli İpuçları
 
-### 三层响应获取机制与参数控制
+### Üç Katmanlı Yanıt Alma Mekanizması ve Parametre Kontrolü
 
-- **响应获取优先级**: 项目采用三层响应获取机制，确保高可用性和最佳性能：
+- **Yanıt Alma Önceliği**: Proje, yüksek kullanılabilirlik ve en iyi performansı sağlamak için üç katmanlı bir yanıt alma mekanizması kullanır:
 
-  1. **集成流式代理服务 (Stream Proxy)**:
-     - 默认启用，监听端口 `3120` (可通过 `.env` 文件的 `STREAM_PORT` 配置)
-     - 提供最佳性能和稳定性，直接处理 AI Studio 请求
-     - 支持基础参数传递，无需浏览器交互
-  2. **外部 Helper 服务**:
-     - 可选配置，通过 `--helper <endpoint_url>` 参数或 `.env` 配置启用
-     - 需要有效的认证文件 (`auth_profiles/active/*.json`) 提取 `SAPISID` Cookie
-     - 作为流式代理的备用方案
-  3. **Playwright 页面交互**:
-     - 最终后备方案，通过浏览器自动化获取响应
-     - 支持完整的参数控制和模型切换
-     - 通过模拟用户操作（编辑/复制按钮）获取响应
+  1. **Entegre Akış Proxy Hizmeti (Stream Proxy)**:
+     - Varsayılan olarak etkindir, `3120` numaralı bağlantı noktasını dinler (`.env` dosyasının `STREAM_PORT` ile yapılandırılabilir)
+     - En iyi performansı ve kararlılığı sağlar, AI Studio isteklerini doğrudan işler
+     - Tarayıcı etkileşimi olmadan temel parametre geçişini destekler
+  2. **Harici Yardımcı Hizmet**:
+     - İsteğe bağlı yapılandırma, `--helper <endpoint_url>` parametresi veya `.env` yapılandırması ile etkinleştirilir
+     - `SAPISID` Çerezini çıkarmak için geçerli bir kimlik doğrulama dosyası (`auth_profiles/active/*.json`) gerektirir
+     - Akış proxy'sine bir yedek olarak hizmet eder
+  3. **Playwright Sayfa Etkileşimi**:
+     - Son yedek plan, tarayıcı otomasyonu yoluyla yanıtları alır
+     - Tam parametre kontrolünü ve model değiştirmeyi destekler
+     - Yanıtları almak için kullanıcı eylemlerini (düzenle/kopyala düğmeleri) simüle eder
 
-- **参数控制详解**:
+- **Parametre Kontrolü Ayrıntıları**:
 
-  - **流式代理模式**: 支持基础参数 (`model`, `temperature`, `max_tokens` 等)，性能最优
-  - **Helper 服务模式**: 参数支持取决于外部 Helper 服务的具体实现
-  - **Playwright 模式**: 完整支持所有参数，包括 `temperature`, `max_output_tokens`, `top_p`, `stop`, `reasoning_effort`, `tools` 等
+  - **Akış Proxy Modu**: Temel parametreleri (`model`, `temperature`, `max_tokens` vb.) destekler, en iyi performansı sunar
+  - **Yardımcı Hizmet Modu**: Parametre desteği, harici Yardımcı hizmetinin özel uygulamasına bağlıdır
+  - **Playwright Modu**: `temperature`, `max_output_tokens`, `top_p`, `stop`, `reasoning_effort`, `tools` vb. dahil olmak üzere tüm parametreleri tam olarak destekler
 
-- **模型管理**:
+- **Model Yönetimi**:
 
-  - API 请求中的 `model` 字段用于在 AI Studio 页面切换模型
-  - 支持动态模型列表获取和模型 ID 验证
-  - [`excluded_models.txt`](../excluded_models.txt) 文件可排除特定模型 ID
+  - API isteklerindeki `model` alanı, AI Studio sayfasında modeli değiştirmek için kullanılır
+  - Dinamik model listesi alımını ve model kimliği doğrulamasını destekler
+  - [`excluded_models.txt`](../excluded_models.txt) dosyası belirli model kimliklerini hariç tutabilir
 
-- **🆕 脚本注入功能 v3.0**:
-  - 使用 Playwright 原生网络拦截，100% 可靠性
-  - 直接从油猴脚本解析模型数据，无需配置文件维护
-  - 前后端模型数据完全同步，注入模型标记为 `"injected": true`
-  - 详见 [脚本注入指南](script_injection_guide.md)
+- **🆕 Betik Enjeksiyonu Özelliği v3.0**:
+  - Playwright yerel ağ kesintisini kullanır, %100 güvenilirlik
+  - Yapılandırma dosyası bakımı olmadan model verilerini doğrudan userscript'ten ayrıştırır
+  - Ön uç ve arka uç model verileri tamamen senkronize edilir, enjekte edilen modeller `"injected": true` olarak işaretlenir
+  - Ayrıntılar için [Betik Enjeksiyon Kılavuzu](script_injection_guide.md) bölümüne bakın
 
-### 客户端管理历史
+### İstemci Tarafından Yönetilen Geçmiş
 
-**客户端管理历史，代理不支持 UI 内编辑**: 客户端负责维护完整的聊天记录并将其发送给代理。代理服务器本身不支持在 AI Studio 界面中对历史消息进行编辑或分叉操作；它总是处理客户端发送的完整消息列表，然后将其发送到 AI Studio 页面。
+**İstemci geçmişi yönetir, proxy kullanıcı arayüzü içinde düzenlemeyi desteklemez**: İstemci, tam sohbet geçmişini sürdürmekten ve proxy'ye göndermekten sorumludur. Proxy sunucusunun kendisi, AI Studio arayüzündeki geçmiş mesajları düzenleme veya dallandırma işlemlerini desteklemez; her zaman istemci tarafından gönderilen tam mesaj listesini işler ve ardından AI Studio sayfasına gönderir.
 
-## 兼容性说明
+## Uyumluluk Notları
 
-### Python 版本兼容性
+### Python Sürüm Uyumluluğu
 
-- **推荐版本**: Python 3.10+ 或 3.11+ (生产环境推荐)
-- **最低要求**: Python 3.9 (所有功能完全支持)
-- **Docker 环境**: Python 3.10 (容器内默认版本)
-- **完全支持**: Python 3.9, 3.10, 3.11, 3.12, 3.13
-- **依赖管理**: 使用 Poetry 管理，确保版本一致性
+- **Önerilen Sürüm**: Python 3.10+ veya 3.11+ (üretim ortamı için önerilir)
+- **Minimum Gereksinim**: Python 3.9 (tüm özellikler tam olarak desteklenir)
+- **Docker Ortamı**: Python 3.10 (konteyner içindeki varsayılan sürüm)
+- **Tam Destek**: Python 3.9, 3.10, 3.11, 3.12, 3.13
+- **Bağımlılık Yönetimi**: Sürüm tutarlılığını sağlamak için Poetry kullanılır
 
-### API 兼容性
+### API Uyumluluğu
 
-- **OpenAI API**: 完全兼容 OpenAI v1 API 标准，支持所有主流客户端
-- **FastAPI**: 基于 0.115.12 版本，包含最新性能优化和功能增强
-- **HTTP 协议**: 支持 HTTP/1.1 和 HTTP/2，完整的异步处理
-- **认证方式**: 支持 Bearer Token 和 X-API-Key 头部认证，OpenAI 标准兼容
-- **流式响应**: 完整支持 Server-Sent Events (SSE) 流式输出
-- **FastAPI**: 基于 0.111.0 版本，支持现代异步特性
-- **HTTP 协议**: 支持 HTTP/1.1 和 HTTP/2
-- **认证方式**: 支持 Bearer Token 和 X-API-Key 头部认证
+- **OpenAI API**: OpenAI v1 API standardıyla tam uyumlu, tüm ana istemcileri destekler
+- **FastAPI**: 0.115.12 sürümüne dayanır, en son performans optimizasyonlarını ve özellik geliştirmelerini içerir
+- **HTTP Protokolü**: HTTP/1.1 ve HTTP/2'yi destekler, tam asenkron işleme
+- **Kimlik Doğrulama Yöntemleri**: Bearer Token ve X-API-Key başlık kimlik doğrulamasını destekler, OpenAI standardıyla uyumlu
+- **Akışlı Yanıt**: Sunucu Tarafından Gönderilen Olaylar (SSE) akışlı çıktısını tam olarak destekler
+- **FastAPI**: 0.111.0 sürümüne dayanır, modern asenkron özellikleri destekler
+- **HTTP Protokolü**: HTTP/1.1 ve HTTP/2'yi destekler
+- **Kimlik Doğrulama Yöntemleri**: Bearer Token ve X-API-Key başlık kimlik doğrulamasını destekler
 
-## 下一步
+## Sonraki Adımlar
 
-API 使用配置完成后，请参考：
+API kullanım yapılandırması tamamlandıktan sonra, lütfen şunlara bakın:
 
-- [Web UI 使用指南](webui-guide.md)
-- [故障排除指南](troubleshooting.md)
-- [日志控制指南](logging-control.md)
+- [Web UI Kullanım Kılavuzu](webui-guide.md)
+- [Sorun Giderme Kılavuzu](troubleshooting.md)
+- [Günlük Kontrol Kılavuzu](logging-control.md)

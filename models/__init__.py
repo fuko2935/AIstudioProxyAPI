@@ -1,4 +1,4 @@
-# 聊天相关模型
+# Sohbet ile ilgili modeller
 from .chat import (
     FunctionCall,
     ToolCall,
@@ -7,10 +7,10 @@ from .chat import (
     ChatCompletionRequest
 )
 
-# 异常类
+# İstisna sınıfları
 from .exceptions import ClientDisconnectedError
 
-# 日志工具类
+# Günlük araç sınıfları
 from .logging import (
     StreamToLogger,
     WebSocketConnectionManager,
@@ -18,17 +18,17 @@ from .logging import (
 )
 
 __all__ = [
-    # 聊天模型
+    # Sohbet modelleri
     'FunctionCall',
     'ToolCall', 
     'MessageContentItem',
     'Message',
     'ChatCompletionRequest',
     
-    # 异常
+    # İstisnalar
     'ClientDisconnectedError',
-    
-    # 日志工具
+
+    # Günlük araçları
     'StreamToLogger',
     'WebSocketConnectionManager',
     'WebSocketLogHandler'

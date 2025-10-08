@@ -10,23 +10,23 @@ services:
       - "${HOST_FASTAPI_PORT:-2048}:${DEFAULT_FASTAPI_PORT:-2048}"
       - "${HOST_STREAM_PORT:-3120}:${STREAM_PORT:-3120}"
     volumes:
-      # 挂载认证文件目录 (必需)
+      # Kimlik doğrulama dosyalarını bağla (zorunlu)
       - ../auth_profiles:/app/auth_profiles
-      # 挂载 .env 配置文件 (推荐)
-      # 请将 docker/.env.docker 复制为 docker/.env 并根据需要修改
+      # .env yapılandırma dosyasını bağla (önerilir)
+      # docker/.env.docker dosyasını docker/.env olarak kopyalayıp gerekli düzenlemeleri yapın
       - ../docker/.env:/app/.env:ro
-      # 挂载日志目录 (可选，用于持久化日志)
-      # 如果出现权限报错，需要修改日志目录权限 sudo chmod -R 777 ../logs
+      # Log dizinini bağla (opsiyonel, logları kalıcı tutmak için)
+      # Yetki hatası alırsanız sudo chmod -R 777 ../logs komutuyla izinleri güncelleyin
       # - ../logs:/app/logs
-      # 挂载自定义证书 (可选)
+      # Özel sertifikaları bağla (opsiyonel)
       # - ../certs:/app/certs:ro
-      # 挂载脚本注入相关文件 (可选，用于自定义脚本和模型配置)
-      # 如果您有自定义的油猴脚本或模型配置，可以取消注释以下行
+      # Script enjeksiyonu ile ilgili dosyaları bağla (opsiyonel; özel script/model yapılandırması için)
+      # Özel Tampermonkey betikleriniz veya model yapılandırmalarınız varsa aşağıdaki satırları etkinleştirin
       # - ../browser_utils/custom_scripts:/app/browser_utils/custom_scripts:ro
       # - ../browser_utils/model_configs.json:/app/browser_utils/model_configs.json:ro
     environment:
-      # 这些环境变量会覆盖 .env 文件中的设置
-      # 如果您想使用 .env 文件，可以注释掉这些行
+      # Bu ortam değişkenleri .env dosyasındaki değerleri override eder
+      # Yalnızca .env kullanmak istiyorsanız bu satırları yorum satırına alın
       - PYTHONUNBUFFERED=1
       # - PORT=${PORT:-8000}
       # - DEFAULT_FASTAPI_PORT=${DEFAULT_FASTAPI_PORT:-2048}
@@ -35,7 +35,7 @@ services:
       # - SERVER_LOG_LEVEL=${SERVER_LOG_LEVEL:-INFO}
       # - DEBUG_LOGS_ENABLED=${DEBUG_LOGS_ENABLED:-false}
       # - AUTO_CONFIRM_LOGIN=${AUTO_CONFIRM_LOGIN:-true}
-      # 代理配置 (可选)
+      # Proxy yapılandırması (opsiyonel)
       # - HTTP_PROXY=${HTTP_PROXY}
       # - HTTPS_PROXY=${HTTPS_PROXY}
       # - UNIFIED_PROXY_CONFIG=${UNIFIED_PROXY_CONFIG}
@@ -46,11 +46,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    # 可选：如果需要特定的网络配置
+    # Opsiyonel: özel bir ağ ayarı gerekiyorsa
     # networks:
     #   - ai-studio-network
 
-# 可选：自定义网络
+# Opsiyonel: özel ağ tanımı
 # networks:
 #   ai-studio-network:
 #     driver: bridge

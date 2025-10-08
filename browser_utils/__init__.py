@@ -1,5 +1,5 @@
 # --- browser_utils/__init__.py ---
-# 浏览器操作工具模块
+# Tarayıcı işlem araçları modülü
 from .initialization import _initialize_page_logic, _close_page_logic, signal_camoufox_shutdown, enable_temporary_chat_mode
 from .operations import (
     _handle_model_list_response,
@@ -26,13 +26,13 @@ from .model_management import (
 from .script_manager import ScriptManager, script_manager
 
 __all__ = [
-    # 初始化相关
+    # Başlatma ile ilgili
     '_initialize_page_logic',
-    '_close_page_logic', 
+    '_close_page_logic',
     'signal_camoufox_shutdown',
     'enable_temporary_chat_mode',
-    
-    # 页面操作相关
+
+    # Sayfa işlemi ile ilgili
     '_handle_model_list_response',
     'detect_and_extract_page_error',
     'save_error_snapshot',
@@ -42,8 +42,8 @@ __all__ = [
     '_get_final_response_content',
     'get_raw_text_content',
     'get_default_qwen_models',
-    
-    # 模型管理相关
+
+    # Model yönetimi ile ilgili
     'refresh_model_catalog',
     'switch_ai_studio_model',
     'load_excluded_models',
@@ -54,7 +54,7 @@ __all__ = [
     '_force_ui_state_with_retry',
     '_verify_and_apply_ui_state',
 
-    # 脚本管理相关
+    # Script yönetimi ile ilgili
     'ScriptManager',
     'script_manager'
 ]

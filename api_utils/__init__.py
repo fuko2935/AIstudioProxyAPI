@@ -1,14 +1,14 @@
 """
-API工具模块
-提供FastAPI应用初始化、路由处理和工具函数
+API araçları modülü
+FastAPI uygulaması başlatma, rota işleme ve araç fonksiyonları sağlar
 """
 
-# 应用初始化
+# Uygulama başlatma
 from .app import (
     create_app
 )
 
-# 路由处理器
+# Rota işleyicileri
 from .routes import (
     read_index,
     get_css,
@@ -22,7 +22,7 @@ from .routes import (
     websocket_log_endpoint
 )
 
-# 工具函数
+# Yardımcı fonksiyonlar
 from .utils import (
     generate_sse_chunk,
     generate_sse_stop_chunk,
@@ -36,20 +36,20 @@ from .utils import (
     calculate_usage_stats
 )
 
-# 请求处理器
+# İstek işlemcisi
 from .request_processor import (
     _process_request_refactored
 )
 
-# 队列工作器
+# Kuyruk işçisi
 from .queue_worker import (
     queue_worker
 )
 
 __all__ = [
-    # 应用初始化
+    # Uygulama başlatma
     'create_app',
-    # 路由处理器
+    # Rota işleyicileri
     'read_index',
     'get_css',
     'get_js',
@@ -60,7 +60,7 @@ __all__ = [
     'cancel_request',
     'get_queue_status',
     'websocket_log_endpoint',
-    # 工具函数
+    # Yardımcı fonksiyonlar
     'generate_sse_chunk',
     'generate_sse_stop_chunk',
     'generate_sse_error_chunk',
@@ -71,8 +71,8 @@ __all__ = [
     'prepare_combined_prompt',
     'estimate_tokens',
     'calculate_usage_stats',
-    # 请求处理器
+    # İstek işlemcisi
     '_process_request_refactored',
-    # 队列工作器
+    # Kuyruk işçisi
     'queue_worker'
 ] 

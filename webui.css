@@ -1,150 +1,150 @@
 /* --- Modernized M3-Inspired Styles --- */
 :root {
-    /* Material 3 宇宙极光主题 - 亮色调色板 (更柔和版) */
+    /* Material 3 Kozmik Aurora teması - Açık renk paleti (daha yumuşak sürüm) */
     --primary-rgb: 85, 77, 175;
-    /* #554DAF - 柔和深蓝紫色 */
+    /* #554DAF - Yumuşak koyu mavi mor */
     --on-primary-rgb: 255, 255, 255;
-    /* 在主色上的文本 */
+    /* Ana renk üzerindeki metin */
     --primary-container-rgb: 231, 229, 252;
-    /* #E7E5FC - 柔和淡紫色容器 */
+    /* #E7E5FC - Yumuşak açık mor kap */
     --on-primary-container-rgb: 31, 26, 70;
-    /* #1F1A46 - 主色容器上的文本 */
+    /* #1F1A46 - Ana renk kabı üzerindeki metin */
 
     --secondary-rgb: 105, 81, 146;
-    /* #695192 - 柔和紫罗兰色 */
+    /* #695192 - Yumuşak menekşe rengi */
     --on-secondary-rgb: 255, 255, 255;
-    /* 次色上的文本 */
+    /* İkincil renk üzerindeki metin */
     --secondary-container-rgb: 238, 230, 255;
-    /* #EEE6FF - 更淡的紫色容器 */
+    /* #EEE6FF - Daha açık mor kap */
     --on-secondary-container-rgb: 45, 32, 70;
-    /* #2D2046 - 次色容器上的文本 */
+    /* #2D2046 - İkincil renk kabı üzerindeki metin */
 
     --tertiary-rgb: 76, 173, 188;
-    /* #4CADBC - 柔和青蓝色 */
+    /* #4CADBC - Yumuşak mavi yeşil */
     --on-tertiary-rgb: 0, 55, 62;
-    /* #00373E - 第三色上的文本 */
+    /* #00373E - Üçüncü renk üzerindeki metin */
     --tertiary-container-rgb: 220, 242, 246;
-    /* #DCF2F6 - 淡青蓝色容器 */
+    /* #DCF2F6 - Açık mavi yeşil kap */
     --on-tertiary-container-rgb: 8, 76, 84;
-    /* #084C54 - 第三色容器上的文本 */
+    /* #084C54 - Üçüncü renk kabı üzerindeki metin */
 
     --surface-rgb: 249, 249, 252;
-    /* #F9F9FC - 更中性的表面 */
+    /* #F9F9FC - Daha nötr yüzey */
     --on-surface-rgb: 28, 30, 34;
-    /* #1C1E22 - 表面上的文本 */
+    /* #1C1E22 - Yüzey üzerindeki metin */
     --surface-variant-rgb: 232, 231, 242;
-    /* #E8E7F2 - 更柔和的表面变体 */
+    /* #E8E7F2 - Daha yumuşak yüzey varyantı */
     --on-surface-variant-rgb: 73, 74, 90;
-    /* #494A5A - 表面变体上的文本 */
+    /* #494A5A - Yüzey varyantı üzerindeki metin */
 
     --error-rgb: 178, 69, 122;
-    /* #B2457A - 柔和的错误色 */
+    /* #B2457A - Yumuşak hata rengi */
     --on-error-rgb: 255, 255, 255;
-    /* 错误色上的文本 */
+    /* Hata rengi üzerindeki metin */
     --error-container-rgb: 255, 228, 238;
-    /* #FFE4EE - 更淡的错误容器 */
+    /* #FFE4EE - Daha açık hata kabı */
     --on-error-container-rgb: 75, 13, 49;
-    /* #4B0D31 - 错误容器上的文本 */
+    /* #4B0D31 - Hata kabı üzerindeki metin */
 
     --outline-rgb: 128, 127, 147;
-    /* #807F93 - 柔和轮廓线 */
+    /* #807F93 - Yumuşak anahat çizgisi */
 
-    /* 亮色主题变量 */
+    /* Açık renk tema değişkenleri */
     --bg-color: #f5f5fa;
-    /* 更中性的淡色背景 */
+    /* Daha nötr açık renk arka plan */
     --container-bg: rgb(var(--surface-rgb));
-    /* 表面 */
+    /* Yüzey */
     --text-color: rgb(var(--on-surface-rgb));
-    /* 文本颜色 */
+    /* Metin rengi */
 
     --primary-color: rgb(var(--primary-rgb));
-    /* 主色 */
+    /* Ana renk */
     --on-primary: rgb(var(--on-primary-rgb));
-    /* 主色上的文本 */
+    /* Ana renk üzerindeki metin */
     --primary-container: rgb(var(--primary-container-rgb));
-    /* 主色容器 */
+    /* Ana renk kabı */
     --on-primary-container: rgb(var(--on-primary-container-rgb));
-    /* 主色容器上的文本 */
+    /* Ana renk kabı üzerindeki metin */
 
     --secondary-color: rgb(var(--secondary-rgb));
-    /* 次色 */
+    /* İkincil renk */
     --on-secondary: rgb(var(--on-secondary-rgb));
-    /* 次色上的文本 */
+    /* İkincil renk üzerindeki metin */
     --secondary-container: rgb(var(--secondary-container-rgb));
-    /* 次色容器 */
+    /* İkincil renk kabı */
     --on-secondary-container: rgb(var(--on-secondary-container-rgb));
-    /* 次色容器上的文本 */
+    /* İkincil renk kabı üzerindeki metin */
 
     --user-msg-bg: var(--primary-container);
-    /* 用户消息背景 */
+    /* Kullanıcı mesajı arka planı */
     --user-msg-text: var(--on-primary-container);
-    /* 用户消息文本 */
+    /* Kullanıcı mesajı metni */
     --assistant-msg-bg: rgb(var(--surface-variant-rgb));
-    /* 助手消息背景 */
+    /* Asistan mesajı arka planı */
     --assistant-msg-text: rgb(var(--on-surface-variant-rgb));
-    /* 助手消息文本 */
+    /* Asistan mesajı metni */
     --system-msg-bg: rgba(var(--on-surface-rgb), 0.05);
-    /* 系统消息背景 */
+    /* Sistem mesajı arka planı */
     --system-msg-text: rgba(var(--on-surface-rgb), 0.7);
-    /* 系统消息文本 */
+    /* Sistem mesajı metni */
 
     --error-color: rgb(var(--error-rgb));
-    /* 错误颜色 */
+    /* Hata rengi */
     --on-error: rgb(var(--on-error-rgb));
-    /* 错误颜色上的文本 */
+    /* Hata rengi üzerindeki metin */
     --error-container: rgb(var(--error-container-rgb));
-    /* 错误容器 */
+    /* Hata kabı */
     --on-error-container: rgb(var(--on-error-container-rgb));
-    /* 错误容器上的文本 */
+    /* Hata kabı üzerindeki metin */
     --error-msg-bg: var(--error-container);
     --error-msg-text: var(--on-error-container);
 
     --border-color: rgba(var(--outline-rgb), 0.7);
-    /* 边框颜色 */
+    /* Kenarlık rengi */
     --input-bg: var(--container-bg);
-    /* 输入框背景 */
+    /* Giriş kutusu arka planı */
     --input-border: rgba(var(--outline-rgb), 0.4);
-    /* 输入框边框 */
+    /* Giriş kutusu kenarlığı */
     --input-focus-border: var(--primary-color);
-    /* 输入框聚焦边框 */
+    /* Giriş kutusu odaklanma kenarlığı */
     --input-focus-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
-    /* 聚焦阴影 */
+    /* Odaklanma gölgesi */
 
     --button-bg: var(--primary-color);
-    /* 按钮背景 */
+    /* Düğme arka planı */
     --button-text: var(--on-primary);
-    /* 按钮文本 */
+    /* Düğme metni */
     --button-hover-bg: rgb(71, 64, 150);
-    /* 按钮悬停背景 - 深蓝色 */
+    /* Düğme hover arka planı - koyu mavi */
     --button-disabled-bg: rgba(var(--on-surface-rgb), 0.12);
-    /* 禁用按钮背景 */
+    /* Devre dışı düğme arka planı */
     --button-disabled-text: rgba(var(--on-surface-rgb), 0.38);
-    /* 禁用按钮文本 */
+    /* Devre dışı düğme metni */
 
     --clear-button-bg: rgba(var(--secondary-rgb), 0.9);
-    /* 清除按钮背景 */
+    /* Temizleme düğmesi arka planı */
     --clear-button-text: var(--on-secondary);
-    /* 清除按钮文本 */
+    /* Temizleme düğmesi metni */
     --clear-button-hover-bg: rgb(92, 71, 128);
-    /* 清除按钮悬停背景 - 深紫色 */
+    /* Temizleme düğmesi hover arka planı - koyu mor */
 
     --sidebar-bg: rgba(var(--surface-rgb), 0.95);
-    /* 侧边栏背景 */
+    /* Kenar çubuğu arka planı */
     --sidebar-border: rgba(var(--outline-rgb), 0.3);
-    /* 侧边栏边框 */
+    /* Kenar çubuğu kenarlığı */
 
     --icon-button-bg: transparent;
     --icon-button-hover-bg: rgba(var(--primary-rgb), 0.08);
     --icon-button-color: rgb(var(--on-surface-variant-rgb));
 
     --log-terminal-bg: #232043;
-    /* 日志终端背景 - 深蓝紫色但更柔和 */
+    /* Log terminal arka planı - koyu mavi mor ama daha yumuşak */
     --log-terminal-text: #d8d8e8;
-    /* 日志终端文本 - 更柔和的淡紫白色 */
+    /* Log terminal metni - daha yumuşak açık mor beyaz */
     --log-status-text: #f0f0ff;
-    /* 日志状态文本 - 浅色模式下使用更亮的白色 */
+    /* Log durum metni - açık renk modunda daha parlak beyaz kullan */
     --log-status-error: #ff9db3;
-    /* 日志状态错误文本 - 浅色模式下的错误颜色 */
+    /* Log durum hata metni - açık renk modundaki hata rengi */
 
     --theme-toggle-hover-bg: rgba(var(--secondary-rgb), 0.08);
     --theme-toggle-color: var(--icon-button-color);
@@ -154,82 +154,83 @@
     --card-border: rgba(var(--outline-rgb), 0.2);
     --card-shadow: var(--shadow-sm);
 
-    /* 边框半径 */
+    /* Kenarlık yarıçapları */
     --border-radius-sm: 8px;
     --border-radius-md: 12px;
     --border-radius-lg: 16px;
     --border-radius-xl: 28px;
 
-    /* 阴影 */
+    /* Gölge */
     --shadow-sm: 0 1px 3px rgba(85, 77, 175, 0.08), 0 1px 2px rgba(85, 77, 175, 0.04);
     --shadow-md: 0 4px 6px rgba(85, 77, 175, 0.06), 0 2px 4px rgba(85, 77, 175, 0.06);
     --shadow-lg: 0 10px 15px rgba(85, 77, 175, 0.04), 0 4px 6px rgba(85, 77, 175, 0.03);
 
-    /* 尺寸变量 */
+    /* Boyut değişkenleri */
     --sidebar-width: 320px;
     --sidebar-transition: width 0.3s ease, padding 0.3s ease, border 0.3s ease, transform 0.3s ease;
     --content-padding: 16px;
 
-    /* 动画速度 */
+    /* Animasyon hızı */
     --transition-speed: 0.2s;
 }
 
-/* 深色模式调色板 */
+/* Koyu tema renk paleti */
+/* Koyu tema paleti */
 html.dark-mode {
-    /* 深色主题 宇宙极光 调色板 (更柔和版) */
+    /* Koyu tema Kozmik Aurora paleti (daha yumuşak sürüm) */
     --primary-rgb: 161, 153, 219;
-    /* #A199DB - 柔和紫蓝色 */
+    /* #A199DB - Yumuşak mor mavi */
     --on-primary-rgb: 38, 33, 80;
-    /* #262150 - 深蓝紫色 */
+    /* #262150 - Koyu mavi mor */
     --primary-container-rgb: 60, 53, 113;
-    /* #3C3571 - 柔和深蓝紫色容器 */
+    /* #3C3571 - Yumuşak koyu mavi mor kap */
     --on-primary-container-rgb: 231, 229, 252;
-    /* #E7E5FC - 柔和淡紫色 */
+    /* #E7E5FC - Yumuşak açık mor */
 
     --secondary-rgb: 184, 171, 216;
-    /* #B8ABD8 - 柔和的淡紫蓝色 */
+    /* #B8ABD8 - Yumuşak açık mor mavi */
     --on-secondary-rgb: 47, 36, 71;
-    /* #2F2447 - 深紫色 */
+    /* #2F2447 - Koyu mor */
     --secondary-container-rgb: 70, 57, 98;
-    /* #463962 - 中深紫色 */
+    /* #463962 - Orta koyu mor */
     --on-secondary-container-rgb: 238, 230, 255;
-    /* #EEE6FF - 更淡的紫色 */
+    /* #EEE6FF - Daha açık mor */
 
     --tertiary-rgb: 130, 200, 211;
-    /* #82C8D3 - 柔和青蓝色 */
+    /* #82C8D3 - Yumuşak mavi yeşil */
     --on-tertiary-rgb: 10, 73, 82;
-    /* #0A4952 - 深青色 */
+    /* #0A4952 - Koyu mavi yeşil */
     --tertiary-container-rgb: 15, 86, 96;
-    /* #0F5660 - 中深青色 */
+    /* #0F5660 - Orta koyu mavi yeşil */
     --on-tertiary-container-rgb: 195, 241, 252;
-    /* #C3F1FC - 淡青色 */
+    /* #C3F1FC - Açık mavi yeşil */
 
     --surface-rgb: 28, 26, 46;
-    /* #1C1A2E - 更柔和的深蓝紫黑色 */
+    /* #1C1A2E - Daha yumuşak koyu mavi mor siyah */
     --on-surface-rgb: 231, 230, 245;
-    /* #E7E6F5 - 淡紫白色 */
+    /* #E7E6F5 - Açık mor beyaz */
     --surface-variant-rgb: 68, 66, 86;
-    /* #444256 - 柔和的中深紫色 */
+    /* #444256 - Yumuşak orta koyu mor */
     --on-surface-variant-rgb: 214, 212, 232;
-    /* #D6D4E8 - 柔和的淡紫色 */
+    /* #D6D4E8 - Yumuşak açık mor */
 
     --error-rgb: 231, 162, 195;
-    /* #E7A2C3 - 更柔和的淡粉色 */
+    /* #E7A2C3 - Daha yumuşak açık pembe */
     --on-error-rgb: 72, 19, 50;
-    /* #481332 - 深粉色 */
+    /* #481332 - Koyu pembe */
     --error-container-rgb: 97, 32, 67;
-    /* #612043 - 中深粉色 */
+    /* #612043 - Orta koyu pembe */
     --on-error-container-rgb: 255, 228, 238;
-    /* #FFE4EE - 更淡的粉色 */
+    /* #FFE4EE - Daha açık pembe */
 
     --outline-rgb: 147, 145, 169;
-    /* #9391A9 - 柔和的中灰紫色 */
+    /* #9391A9 - Yumuşak orta gri mor */
 
-    /* 深色主题变量 */
+    /* Koyu tema değişkenleri */
     --bg-color: #18172a;
-    /* 更柔和的深蓝紫黑色背景 */
+    /* Daha yumuşak koyu mavi mor siyah arka plan */
     --container-bg: #1c1a2e;
-    /* 更柔和的深蓝紫色表面 */
+    /* Daha yumuşak koyu mavi mor yüzey */
     --text-color: rgb(var(--on-surface-rgb));
 
     --primary-color: rgb(var(--primary-rgb));
@@ -259,25 +260,24 @@ html.dark-mode {
     --input-border: rgba(var(--outline-rgb), 0.3);
 
     --button-hover-bg: rgb(178, 171, 228);
-    /* 更柔和的淡紫蓝色 */
+    /* Daha yumuşak açık mor mavi */
 
     --sidebar-bg: #201e36;
-    /* 更柔和的深蓝紫色 */
+    /* Daha yumuşak koyu mavi mor */
 
     --log-terminal-bg: #16152c;
-    /* 更柔和的深蓝紫黑色 */
+    /* Daha yumuşak koyu mavi mor siyah */
     --log-terminal-text: #d8d7ee;
-    /* 更柔和的淡紫色文本 */
+    /* Daha yumuşak açık mor metin */
     --log-status-text: #a8a7c8;
-    /* 日志状态文本 - 深色模式下使用中等亮度的紫色 */
+    /* Log durum metni - Koyu modda orta parlaklık mor kullan */
     --log-status-error: #ff8aa5;
-    /* 日志状态错误文本 - 深色模式下的错误颜色 */
+    /* Log durum hata metni - Koyu mod hata rengi */
 
-    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.25), 0 5px 7px rgba(0, 0, 0, 0.18);
-
-    /* 阴影 */
+    /* Gölge */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(161, 153, 219, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.22), 0 2px 4px rgba(161, 153, 219, 0.06);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.25), 0 4px 6px rgba(161, 153, 219, 0.08);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.25), 0 4px 6px rgba(161, 153, 219, 0.08);
 }
 
@@ -301,7 +301,7 @@ body {
     transition: background-color var(--transition-speed), color var(--transition-speed);
 }
 
-/* --- 工作区布局 --- */
+/* --- Çalışma alanı düzeni --- */
 .workspace-container {
     display: flex;
     width: 100%;
@@ -321,7 +321,7 @@ body {
     transition: background-color var(--transition-speed);
 }
 
-/* --- 侧边栏样式改进 --- */
+/* --- Kenar çubuğu stilleri iyileştirme --- */
 .sidebar-panel {
     width: var(--sidebar-width); /* Retain for content & transition */
     height: 100%;
@@ -354,7 +354,7 @@ body {
     overflow: hidden; /* Keep from original global .collapsed */
 }
 
-/* --- 侧边栏切换按钮 --- */
+/* --- Kenar çubuğu geçiş düğmesi --- */
 #toggleSidebarButton {
     /* New global styles, moved from @media (max-width: 768px) */
     position: fixed;
@@ -387,7 +387,7 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-/* --- 标题样式 --- */
+/* --- Başlık stilleri --- */
 h1 {
     color: var(--text-color);
     text-align: center;
@@ -416,7 +416,7 @@ h1 {
 
 /* Removed .title-separator and .subtitle as title is simpler now */
 
-/* --- 链接样式 --- */
+/* --- Bağlantı stilleri --- */
 a {
     color: var(--primary-color);
     text-decoration: none;
@@ -429,7 +429,7 @@ a:hover {
     opacity: 0.85;
 }
 
-/* --- API密钥管理样式 --- */
+/* --- API anahtarı yönetim stilleri --- */
 .api-key-status {
     padding: 12px;
     border-radius: var(--border-radius-md);
@@ -540,7 +540,7 @@ a:hover {
     color: var(--error-color);
 }
 
-/* --- 消息样式增强 --- */
+/* --- Mesaj stilleri geliştirme --- */
 #chatbox {
     flex-grow: 1;
     overflow-y: auto;
@@ -612,7 +612,7 @@ a:hover {
     border: 1px solid rgba(var(--error-rgb), 0.2);
 }
 
-/* --- 输入区域样式增强 --- */
+/* --- Giriş alanı stilleri geliştirme --- */
 #input-area {
     display: flex;
     padding: 12px var(--content-padding);
@@ -626,7 +626,7 @@ a:hover {
     transition: background-color var(--transition-speed);
 }
 
-/* 模型选择器样式 */
+/* Model seçici stilleri */
 .model-selector-container {
     flex-basis: 100%;
     display: flex;
@@ -707,7 +707,7 @@ a:hover {
     box-shadow: var(--input-focus-shadow);
 }
 
-/* --- 按钮样式增强 --- */
+/* --- Düğme stilleri geliştirme --- */
 .action-button {
     padding: 12px 24px;
     border: none;
@@ -765,7 +765,7 @@ a:hover {
     background-color: var(--clear-button-hover-bg);
 }
 
-/* --- 图标按钮样式 --- */
+/* --- Simge düğme stilleri --- */
 .icon-button {
     background-color: var(--icon-button-bg);
     color: var(--icon-button-color);
@@ -795,7 +795,7 @@ a:hover {
     opacity: 0.5;
 }
 
-/* --- 服务器信息视图增强 --- */
+/* --- Sunucu bilgi görünümü geliştirme --- */
 #server-info-view {
     display: none;
     /* Initially hidden */
@@ -897,7 +897,7 @@ a:hover {
     font-weight: 500;
 }
 
-/* --- 导航样式增强 --- */
+/* --- Navigasyon stilleri geliştirme --- */
 .main-nav {
     display: flex;
     padding: 12px var(--content-padding) 12px;
@@ -946,7 +946,7 @@ a:hover {
     opacity: 1;
 }
 
-/* --- 主题切换按钮增强 --- */
+/* --- Tema geçiş düğmesi geliştirme --- */
 #themeToggleButton {
     background-color: var(--theme-toggle-bg);
     border: 1px solid rgba(var(--outline-rgb), 0.3);
@@ -991,7 +991,7 @@ html.dark-mode #lightModeIcon {
     display: block;
 }
 
-/* --- 日志区域样式增强 --- */
+/* --- Log alanı stilleri geliştirme --- */
 #log-area {
     flex-grow: 1;
     display: flex;
@@ -1065,7 +1065,7 @@ html.dark-mode #lightModeIcon {
     margin-top: 0;
     padding: 10px;
     color: var(--log-status-text);
-    /* 使用主题相关的变量 */
+    /* Tema ile ilgili değişkenleri kullan */
     flex-shrink: 0;
     background-color: var(--log-terminal-bg);
     border-top: 1px solid rgba(var(--outline-rgb), 0.3);
@@ -1095,7 +1095,7 @@ html.dark-mode #lightModeIcon {
 }
 
 
-/* --- 代码块样式增强 --- */
+/* --- Kod bloğu stilleri geliştirme --- */
 .message pre {
     background-color: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(var(--outline-rgb), 0.2);
@@ -1125,7 +1125,7 @@ html.dark-mode .message code:not(pre > code) {
     background-color: rgba(var(--primary-rgb), 0.15);
 }
 
-/* --- 响应式增强 --- */
+/* --- Duyarlı geliştirme --- */
 @media (max-width: 768px) {
 
     #userInput {
@@ -1222,7 +1222,7 @@ html.dark-mode .message code:not(pre > code) {
     }
 }
 
-/* --- 闪烁光标动画 --- */
+/* --- Yanıp sönen imleç animasyonu --- */
 .assistant-message.streaming::after {
     content: '|';
     animation: blink 1s step-end infinite;
@@ -1246,7 +1246,7 @@ html.dark-mode .message code:not(pre > code) {
     }
 }
 
-/* --- 加载指示器样式 --- */
+/* --- Yükleme göstergesi stilleri --- */
 .loading-indicator {
     display: flex;
     align-items: center;
@@ -1273,7 +1273,7 @@ html.dark-mode .message code:not(pre > code) {
     }
 }
 
-/* --- 卡片内容动画 --- */
+/* --- Kart içeriği animasyonu --- */
 .info-card {
     animation: fadeIn 0.3s ease-out;
     /* Duplicates from above, ensure consistency or remove if redundant */
@@ -1291,7 +1291,7 @@ html.dark-mode .message code:not(pre > code) {
     }
 }
 
-/* --- 美化信息列表 --- */
+/* --- Bilgi listelerini güzelleştir --- */
 .info-list {
     background-color: rgba(var(--surface-rgb), 0.5);
     border-radius: var(--border-radius-md);
@@ -1314,7 +1314,7 @@ html.dark-mode .message code:not(pre > code) {
 
 /* info-list strong already defined */
 
-/* --- 代码标签增强 --- */
+/* --- Kod etiketi geliştirme --- */
 code {
     /* General code tag style, distinct from .message code */
     font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
@@ -1331,7 +1331,7 @@ html.dark-mode code {
 }
 
 
-/* --- 按钮动画增强 --- */
+/* --- Düğme animasyonu geliştirme --- */
 .action-button {
     position: relative;
     overflow: hidden;
@@ -1372,7 +1372,7 @@ html.dark-mode code {
     }
 }
 
-/* --- 聊天区域滚动条美化 --- */
+/* --- Sohbet alanı kaydırma çubuğunu güzelleştir --- */
 #chatbox::-webkit-scrollbar,
 #log-terminal::-webkit-scrollbar,
 /* Apply to log terminal too */
@@ -1416,7 +1416,7 @@ html.dark-mode code {
     background-color: rgba(var(--outline-rgb), 0.3);
 }
 
-/* --- 用户输入框滚动条 --- */
+/* --- Kullanıcı giriş kutusu kaydırma çubuğu --- */
 #userInput::-webkit-scrollbar {
     width: 6px;
 }
@@ -1435,7 +1435,7 @@ html.dark-mode code {
     background-color: rgba(var(--outline-rgb), 0.3);
 }
 
-/* --- 加强主题切换按钮样式 --- */
+/* --- Tema geçiş düğmesi stillerini güçlendir --- */
 #themeToggleButton {
     display: flex;
     align-items: center;
@@ -1443,9 +1443,9 @@ html.dark-mode code {
     position: relative;
 }
 
-/* 删除之前使用emoji的样式，使用SVG图标替代 */
+/* Önceden kullanılan emoji stillerini kaldır, SVG simge ile değiştir */
 
-/* --- 模型设置页面样式 --- */
+/* --- Model ayarları sayfası stilleri --- */
 #model-settings-view {
     display: none;
     /* Initially hidden */

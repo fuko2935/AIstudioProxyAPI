@@ -1,6 +1,6 @@
 """
-队列工作器模块
-处理请求队列中的任务
+Kuyruk işçisi modülü
+İstek kuyruğundaki görevleri işler
 """
 
 import asyncio
@@ -10,33 +10,33 @@ from fastapi import HTTPException
 
 
 async def queue_worker():
-    """队列工作器，处理请求队列中的任务"""
-    # 导入全局变量
+    """Kuyruk işçisi, istek kuyruğundaki görevleri işler"""
+    # Global değişkenleri içe aktar
     from server import (
         logger, request_queue, processing_lock, model_switching_lock, 
         params_cache_lock
     )
     
-    logger.info("--- 队列 Worker 已启动 ---")
+    logger.info("--- Kuyruk Worker başlatıldı ---")
     
-    # 检查并初始化全局变量
+    # Global değişkenleri kontrol et ve başlat
     if request_queue is None:
-        logger.info("初始化 request_queue...")
+        logger.info("request_queue başlatılıyor...")
         from asyncio import Queue
         request_queue = Queue()
     
     if processing_lock is None:
-        logger.info("初始化 processing_lock...")
+        logger.info("processing_lock başlatılıyor...")
         from asyncio import Lock
         processing_lock = Lock()
     
     if model_switching_lock is None:
-        logger.info("初始化 model_switching_lock...")
+        logger.info("model_switching_lock başlatılıyor...")
         from asyncio import Lock
         model_switching_lock = Lock()
     
     if params_cache_lock is None:
-        logger.info("初始化 params_cache_lock...")
+        logger.info("params_cache_lock başlatılıyor...")
         from asyncio import Lock
         params_cache_lock = Lock()
     
@@ -73,7 +73,7 @@ async def queue_worker():
                             if item_http_request:
                                 try:
                                     if await item_http_request.is_disconnected():
-                                        logger.info(f"[{item_req_id}] (Worker Queue Check) 检测到客户端已断开，标记为取消。")
+                                        logger.info(f"[{item_req_id}] (Worker Queue Check) İstemci bağlantısı kesildi, istek iptal ediliyor.")
                                         item["cancelled"] = True
                                         item_future = item.get("result_future")
                                         if item_future and not item_future.done():
@@ -102,22 +102,22 @@ async def queue_worker():
             result_future = request_item["result_future"]
 
             if request_item.get("cancelled", False):
-                logger.info(f"[{req_id}] (Worker) 请求已取消，跳过。")
+                logger.info(f"[{req_id}] (Worker) İstek iptal edilmiş, atlanıyor.")
                 if not result_future.done():
-                    result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] 请求已被用户取消"))
+                    result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] İstek kullanıcı tarafından iptal edildi"))
                 request_queue.task_done()
                 continue
 
             is_streaming_request = request_data.stream
-            logger.info(f"[{req_id}] (Worker) 取出请求。模式: {'流式' if is_streaming_request else '非流式'}")
+            logger.info(f"[{req_id}] (Worker) İstek kuyruğundan alındı. Mod: {'akış' if is_streaming_request else 'akış dışı'}")
 
             # 优化：在开始处理前主动检测客户端连接状态，避免不必要的处理
             from api_utils.request_processor import _test_client_connection
             is_connected = await _test_client_connection(req_id, http_request)
             if not is_connected:
-                logger.info(f"[{req_id}] (Worker) ✅ 主动检测到客户端已断开，跳过处理节省资源")
+                logger.info(f"[{req_id}] (Worker) ✅ İstemci bağlantısı kesildi; işlem atlanıyor")
                 if not result_future.done():
-                    result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] 客户端在处理前已断开连接"))
+                    result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] İstemci işlem başlamadan bağlantıyı kesti"))
                 request_queue.task_done()
                 continue
             
@@ -125,21 +125,21 @@ async def queue_worker():
             current_time = time.time()
             if was_last_request_streaming and is_streaming_request and (current_time - last_request_completion_time < 1.0):
                 delay_time = max(0.5, 1.0 - (current_time - last_request_completion_time))
-                logger.info(f"[{req_id}] (Worker) 连续流式请求，添加 {delay_time:.2f}s 延迟...")
+                logger.info(f"[{req_id}] (Worker) Ardışık akış isteği, {delay_time:.2f}s gecikme ekleniyor...")
                 await asyncio.sleep(delay_time)
             
             # 等待锁前再次主动检测客户端连接
             is_connected = await _test_client_connection(req_id, http_request)
             if not is_connected:
-                logger.info(f"[{req_id}] (Worker) ✅ 等待锁时检测到客户端断开，取消处理")
+                logger.info(f"[{req_id}] (Worker) ✅ Kilit beklenirken istemci bağlantısı kesildi, işlem iptal ediliyor")
                 if not result_future.done():
-                    result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] 客户端关闭了请求"))
+                    result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] İstemci isteği kapattı"))
                 request_queue.task_done()
                 continue
             
-            logger.info(f"[{req_id}] (Worker) 等待处理锁...")
+            logger.info(f"[{req_id}] (Worker) İşleme kilidi bekleniyor...")
             async with processing_lock:
-                logger.info(f"[{req_id}] (Worker) 已获取处理锁。开始核心处理...")
+                logger.info(f"[{req_id}] (Worker) İşleme kilidi alındı, çekirdek işlem başlatılıyor...")
                 completion_event = None
                 submit_btn_loc = None
                 client_disco_checker = None
@@ -150,11 +150,11 @@ async def queue_worker():
                 # 获取锁后最终主动检测客户端连接
                 is_connected = await _test_client_connection(req_id, http_request)
                 if not is_connected:
-                    logger.info(f"[{req_id}] (Worker) ✅ 获取锁后检测到客户端断开，取消处理")
+                    logger.info(f"[{req_id}] (Worker) ✅ Kilit alındıktan sonra istemci bağlantısı kesildi, işlem iptal ediliyor")
                     if not result_future.done():
-                        result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] 客户端关闭了请求"))
+                        result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] İstemci isteği kapattı"))
                 elif result_future.done():
-                    logger.info(f"[{req_id}] (Worker) Future 在处理前已完成/取消。跳过。")
+                    logger.info(f"[{req_id}] (Worker) Future işlem öncesinde tamamlanmış veya iptal edilmiş; atlanıyor.")
                 else:
                     # 调用实际的请求处理函数
                     try:
@@ -181,7 +181,7 @@ async def queue_worker():
                         # 统一的客户端断开检测和响应处理
                         if completion_event:
                             # 流式模式：等待流式生成器完成信号
-                            logger.info(f"[{req_id}] (Worker) 等待流式生成器完成信号...")
+                            logger.info(f"[{req_id}] (Worker) Akış üreticisinden tamamlanma sinyali bekleniyor...")
 
                             # 创建一个增强的客户端断开检测器，支持提前done信号触发
                             client_disconnected_early = False
@@ -190,25 +190,25 @@ async def queue_worker():
                                 nonlocal client_disconnected_early
                                 while not completion_event.is_set():
                                     try:
-                                        # 主动检查客户端是否断开连接
+                                        # İstemci bağlantısını proaktif olarak kontrol et
                                         is_connected = await _test_client_connection(req_id, http_request)
                                         if not is_connected:
-                                            logger.info(f"[{req_id}] (Worker) ✅ 流式处理中检测到客户端断开，提前触发done信号")
+                                            logger.info(f"[{req_id}] (Worker) ✅ Akış sırasında istemci bağlantısı kesildi, done sinyali erken tetiklendi")
                                             client_disconnected_early = True
-                                            # 立即设置completion_event以提前结束等待
+                                            # Beklemeyi sonlandırmak için completion_event'i hemen ayarla
                                             if not completion_event.is_set():
                                                 completion_event.set()
                                             break
-                                        await asyncio.sleep(0.3)  # 更频繁的检查间隔
+                                        await asyncio.sleep(0.3)  # Daha sık kontrol aralığı
                                     except Exception as e:
-                                        logger.error(f"[{req_id}] (Worker) 增强断开检测器错误: {e}")
+                                        logger.error(f"[{req_id}] (Worker) Gelişmiş bağlantı kesilme denetleyicisinde hata: {e}")
                                         break
 
                             # 启动增强的断开连接监控
                             disconnect_monitor_task = asyncio.create_task(enhanced_disconnect_monitor())
                         else:
                             # 非流式模式：等待处理完成并检测客户端断开
-                            logger.info(f"[{req_id}] (Worker) 非流式模式，等待处理完成...")
+                            logger.info(f"[{req_id}] (Worker) Akış dışı modda işlem tamamlanması bekleniyor...")
 
                             client_disconnected_early = False
 
@@ -216,18 +216,18 @@ async def queue_worker():
                                 nonlocal client_disconnected_early
                                 while not result_future.done():
                                     try:
-                                        # 主动检查客户端是否断开连接
+                                        # İstemci bağlantısını proaktif olarak kontrol et
                                         is_connected = await _test_client_connection(req_id, http_request)
                                         if not is_connected:
-                                            logger.info(f"[{req_id}] (Worker) ✅ 非流式处理中检测到客户端断开，取消处理")
+                                            logger.info(f"[{req_id}] (Worker) ✅ Akış dışı işlem sırasında istemci bağlantısı kesildi, işlem iptal ediliyor")
                                             client_disconnected_early = True
-                                            # 取消result_future
+                                            # result_future'ı iptal et
                                             if not result_future.done():
-                                                result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] 客户端在非流式处理中断开连接"))
+                                                result_future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] İstemci akış dışı işlem sırasında bağlantıyı kesti"))
                                             break
-                                        await asyncio.sleep(0.3)  # 更频繁的检查间隔
+                                        await asyncio.sleep(0.3)  # Daha sık kontrol aralığı
                                     except Exception as e:
-                                        logger.error(f"[{req_id}] (Worker) 非流式断开检测器错误: {e}")
+                                        logger.error(f"[{req_id}] (Worker) Akış dışı bağlantı denetleyicisinde hata: {e}")
                                         break
 
                             # 启动非流式断开连接监控
@@ -239,64 +239,64 @@ async def queue_worker():
                                 # 流式模式：等待completion_event
                                 from server import RESPONSE_COMPLETION_TIMEOUT
                                 await asyncio.wait_for(completion_event.wait(), timeout=RESPONSE_COMPLETION_TIMEOUT/1000 + 60)
-                                logger.info(f"[{req_id}] (Worker) ✅ 流式生成器完成信号收到。客户端提前断开: {client_disconnected_early}")
+                                logger.info(f"[{req_id}] (Worker) ✅ Akış üreticisinden tamamlanma sinyali alındı. İstemci erken koptu mu: {client_disconnected_early}")
                             else:
                                 # 非流式模式：等待result_future完成
                                 from server import RESPONSE_COMPLETION_TIMEOUT
                                 await asyncio.wait_for(asyncio.shield(result_future), timeout=RESPONSE_COMPLETION_TIMEOUT/1000 + 60)
-                                logger.info(f"[{req_id}] (Worker) ✅ 非流式处理完成。客户端提前断开: {client_disconnected_early}")
+                                logger.info(f"[{req_id}] (Worker) ✅ Akış dışı işlem tamamlandı. İstemci erken koptu mu: {client_disconnected_early}")
 
                             # 如果客户端提前断开，跳过按钮状态处理
                             if client_disconnected_early:
-                                logger.info(f"[{req_id}] (Worker) 客户端提前断开，跳过按钮状态处理")
+                                logger.info(f"[{req_id}] (Worker) İstemci erken koptu, buton durumu işlemesi atlandı")
                             elif submit_btn_loc is not None and client_disco_checker and completion_event:
                                     # 等待发送按钮禁用确认流式响应完全结束
-                                    logger.info(f"[{req_id}] (Worker) 流式响应完成，检查并处理发送按钮状态...")
+                                    logger.info(f"[{req_id}] (Worker) Akış yanıtı tamamlandı, gönder butonu durumu kontrol ediliyor...")
                                     wait_timeout_ms = 30000  # 30 seconds
                                     try:
                                         from playwright.async_api import expect as expect_async
                                         from api_utils.request_processor import ClientDisconnectedError
 
                                         # 检查客户端连接状态
-                                        client_disco_checker("流式响应后按钮状态检查 - 前置检查: ")
+                                        client_disco_checker("Akış yanıtı sonrası buton durumu kontrolü - ön kontrol")
                                         await asyncio.sleep(0.5)  # 给UI一点时间更新
 
                                         # 检查按钮是否仍然启用，如果启用则直接点击停止
-                                        logger.info(f"[{req_id}] (Worker) 检查发送按钮状态...")
+                                        logger.info(f"[{req_id}] (Worker) Gönder butonu durumu kontrol ediliyor...")
                                         try:
                                             is_button_enabled = await submit_btn_loc.is_enabled(timeout=2000) if submit_btn_loc else False
-                                            logger.info(f"[{req_id}] (Worker) 发送按钮启用状态: {is_button_enabled}")
+                                            logger.info(f"[{req_id}] (Worker) Gönder butonu etkin mi: {is_button_enabled}")
 
                                             if is_button_enabled:
                                                 # 流式响应完成后按钮仍启用，直接点击停止
-                                                logger.info(f"[{req_id}] (Worker) 流式响应完成但按钮仍启用，主动点击按钮停止生成...")
+                                                logger.info(f"[{req_id}] (Worker) Akış tamamlandı fakat buton etkin; üretimi durdurmak için butona tıklanıyor...")
                                                 await submit_btn_loc.click(timeout=5000, force=True)
-                                                logger.info(f"[{req_id}] (Worker) ✅ 发送按钮点击完成。")
+                                                logger.info(f"[{req_id}] (Worker) ✅ Gönder butonuna tıklama tamamlandı.")
                                             else:
-                                                logger.info(f"[{req_id}] (Worker) 发送按钮已禁用，无需点击。")
+                                                logger.info(f"[{req_id}] (Worker) Gönder butonu zaten devre dışı, işlem gerekmiyor.")
                                         except Exception as button_check_err:
-                                            logger.warning(f"[{req_id}] (Worker) 检查按钮状态失败: {button_check_err}")
+                                            logger.warning(f"[{req_id}] (Worker) Gönder butonu durumu kontrol edilemedi: {button_check_err}")
 
                                         # 等待按钮最终禁用
-                                        logger.info(f"[{req_id}] (Worker) 等待发送按钮最终禁用...")
+                                        logger.info(f"[{req_id}] (Worker) Gönder butonunun tamamen devre dışı kalması bekleniyor...")
                                         await expect_async(submit_btn_loc).to_be_disabled(timeout=wait_timeout_ms)
-                                        logger.info(f"[{req_id}] ✅ 发送按钮已禁用。")
+                                        logger.info(f"[{req_id}] ✅ Gönder butonu devre dışı bırakıldı.")
 
                                     except Exception as e_pw_disabled:
-                                        logger.warning(f"[{req_id}] ⚠️ 流式响应后按钮状态处理超时或错误: {e_pw_disabled}")
+                                        logger.warning(f"[{req_id}] ⚠️ Akış sonrası buton durumu işlemesinde zaman aşımı veya hata: {e_pw_disabled}")
                                         from api_utils.request_processor import save_error_snapshot
                                         await save_error_snapshot(f"stream_post_submit_button_handling_timeout_{req_id}")
                                     except ClientDisconnectedError:
-                                        logger.info(f"[{req_id}] 客户端在流式响应后按钮状态处理时断开连接。")
+                                        logger.info(f"[{req_id}] Akış sonrası buton durumu işlenirken istemci bağlantısı kesildi.")
                             elif completion_event and current_request_was_streaming:
-                                logger.warning(f"[{req_id}] (Worker) 流式请求但 submit_btn_loc 或 client_disco_checker 未提供。跳过按钮禁用等待。")
+                                logger.warning(f"[{req_id}] (Worker) Akış isteği ancak submit_btn_loc veya client_disco_checker sağlanmadı; buton beklemesi atlandı.")
 
                         except asyncio.TimeoutError:
-                            logger.warning(f"[{req_id}] (Worker) ⚠️ 等待处理完成超时。")
+                            logger.warning(f"[{req_id}] (Worker) ⚠️ İşlemin tamamlanması beklenirken zaman aşımı oluştu.")
                             if not result_future.done():
                                 result_future.set_exception(HTTPException(status_code=504, detail=f"[{req_id}] Processing timed out waiting for completion."))
                         except Exception as ev_wait_err:
-                            logger.error(f"[{req_id}] (Worker) ❌ 等待处理完成时出错: {ev_wait_err}")
+                            logger.error(f"[{req_id}] (Worker) ❌ İşlemin tamamlanması beklenirken hata oluştu: {ev_wait_err}")
                             if not result_future.done():
                                 result_future.set_exception(HTTPException(status_code=500, detail=f"[{req_id}] Error waiting for completion: {ev_wait_err}"))
                         finally:
@@ -313,42 +313,42 @@ async def queue_worker():
                         if not result_future.done():
                             result_future.set_exception(HTTPException(status_code=500, detail=f"[{req_id}] Request processing error: {process_err}"))
             
-            logger.info(f"[{req_id}] (Worker) 释放处理锁。")
+            logger.info(f"[{req_id}] (Worker) İşleme kilidi serbest bırakılıyor.")
 
-            # 在释放处理锁后立即执行清空操作
+            # Kilidi bıraktıktan sonra temizleme işlemlerini hemen gerçekleştir
             try:
-                # 清空流式队列缓存
+                # Akış kuyruğu önbelleğini temizle
                 from api_utils import clear_stream_queue
                 await clear_stream_queue()
 
-                # 清空聊天历史（对于所有模式：流式和非流式）
+                # Akış ve akış dışı tüm modlar için sohbet geçmişini temizle
                 if submit_btn_loc and client_disco_checker:
                     from server import page_instance, is_page_ready
                     if page_instance and is_page_ready:
                         from browser_utils.page_controller import PageController
                         page_controller = PageController(page_instance, logger, req_id)
-                        logger.info(f"[{req_id}] (Worker) 执行聊天历史清空（{'流式' if completion_event else '非流式'}模式）...")
+                        logger.info(f"[{req_id}] (Worker) Sohbet geçmişi temizleniyor ({'akış' if completion_event else 'akış dışı'} mod)...")
                         await page_controller.clear_chat_history(client_disco_checker)
-                        logger.info(f"[{req_id}] (Worker) ✅ 聊天历史清空完成。")
+                        logger.info(f"[{req_id}] (Worker) ✅ Sohbet geçmişi temizlendi.")
                 else:
-                    logger.info(f"[{req_id}] (Worker) 跳过聊天历史清空：缺少必要参数（submit_btn_loc: {bool(submit_btn_loc)}, client_disco_checker: {bool(client_disco_checker)}）")
+                    logger.info(f"[{req_id}] (Worker) Sohbet geçmişi temizliği atlandı; gerekli parametreler eksik (submit_btn_loc: {bool(submit_btn_loc)}, client_disco_checker: {bool(client_disco_checker)})")
             except Exception as clear_err:
-                logger.error(f"[{req_id}] (Worker) 清空操作时发生错误: {clear_err}", exc_info=True)
+                logger.error(f"[{req_id}] (Worker) Temizleme işlemi sırasında hata oluştu: {clear_err}", exc_info=True)
 
             was_last_request_streaming = is_streaming_request
             last_request_completion_time = time.time()
             
         except asyncio.CancelledError:
-            logger.info("--- 队列 Worker 被取消 ---")
+            logger.info("--- Kuyruk işçisi iptal edildi ---")
             if result_future and not result_future.done():
                 result_future.cancel("Worker cancelled")
             break
         except Exception as e:
-            logger.error(f"[{req_id}] (Worker) ❌ 处理请求时发生意外错误: {e}", exc_info=True)
+            logger.error(f"[{req_id}] (Worker) ❌ İstek işlenirken beklenmeyen hata: {e}", exc_info=True)
             if result_future and not result_future.done():
-                result_future.set_exception(HTTPException(status_code=500, detail=f"[{req_id}] 服务器内部错误: {e}"))
+                result_future.set_exception(HTTPException(status_code=500, detail=f"[{req_id}] Sunucu iç hatası: {e}"))
         finally:
             if request_item:
                 request_queue.task_done()
     
-    logger.info("--- 队列 Worker 已停止 ---") 
+    logger.info("--- Kuyruk işçisi durduruldu ---") 

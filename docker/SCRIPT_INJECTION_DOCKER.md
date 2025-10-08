@@ -1,209 +1,209 @@
-# Docker 环境脚本注入配置指南
+# Docker Ortamı Betik Enjeksiyonu Yapılandırma Rehberi
 
-## 概述
+## Genel Bakış
 
-本指南专门针对 Docker 环境中的油猴脚本注入功能配置。
+Bu rehber, Docker ortamında Tampermonkey betik enjeksiyonu özelliğini yapılandırmak için hazırlanmıştır.
 
-## 快速开始
+## Hızlı Başlangıç
 
-### 1. 基础配置
+### 1. Temel yapılandırma
 
 ```bash
-# 进入 docker 目录
+# docker dizinine gir
 cd docker
 
-# 复制配置模板
+# yapılandırma şablonunu kopyala
 cp .env.docker .env
 
-# 编辑配置文件
+# yapılandırma dosyasını düzenle
 nano .env
 ```
 
-在 `.env` 文件中确保以下配置：
+`.env` dosyasında aşağıdaki ayarların bulunduğundan emin olun:
 
 ```env
-# 启用脚本注入
+# betik enjeksiyonunu etkinleştir
 ENABLE_SCRIPT_INJECTION=true
 
-# 使用默认脚本（模型数据直接从脚本解析）
+# varsayılan betiği kullan (model verileri doğrudan betikten okunur)
 USERSCRIPT_PATH=browser_utils/more_modles.js
 ```
 
-### 2. 启动容器
+### 2. Konteyneri başlat
 
 ```bash
-# 构建并启动
+# oluştur ve başlat
 docker compose up -d
 
-# 查看日志确认脚本注入状态
-docker compose logs -f | grep "脚本注入"
+# betik enjeksiyonu durumunu günlüklerden doğrula
+docker compose logs -f | grep "Script injection"
 ```
 
-## 自定义配置
+## Özelleştirme
 
-### 方法 1: 直接替换脚本文件
+### Yöntem 1: Betik dosyasını doğrudan değiştir
 
 ```bash
-# 1. 创建自定义油猴脚本
+# 1. Özel Tampermonkey betiğini oluştur
 cp ../browser_utils/more_modles.js ../browser_utils/my_custom_script.js
 
-# 2. 编辑脚本文件中的 MODELS_TO_INJECT 数组
+# 2. Betikteki MODELS_TO_INJECT dizisini düzenle
 nano ../browser_utils/my_custom_script.js
 
-# 3. 重启容器
+# 3. Konteyneri yeniden başlat
 docker compose restart
 ```
 
-### 方法 2: 挂载自定义脚本
+### Yöntem 2: Özel betiği bağla
 
 ```bash
-# 1. 创建自定义脚本文件
+# 1. Özel betik dosyasını oluştur
 cp ../browser_utils/more_modles.js ../browser_utils/my_script.js
 
-# 2. 编辑 docker-compose.yml，取消注释并修改：
+# 2. docker-compose.yml dosyasında aşağıdaki satırları etkinleştir ve düzenle:
 # volumes:
 #   - ../browser_utils/my_script.js:/app/browser_utils/more_modles.js:ro
 
-# 3. 重启服务
+# 3. Hizmeti yeniden başlat
 docker compose down
 docker compose up -d
 ```
 
-### 方法 3: 环境变量配置
+### Yöntem 3: Ortam değişkeni ile yapılandır
 
 ```bash
-# 1. 在 .env 文件中修改路径
+# 1. .env dosyasında yolu güncelle
 echo "USERSCRIPT_PATH=browser_utils/my_custom_script.js" >> .env
 
-# 2. 创建对应的脚本文件
+# 2. Karşılık gelen betik dosyasını oluştur
 cp ../browser_utils/more_modles.js ../browser_utils/my_custom_script.js
 
-# 3. 重启容器
+# 3. Konteyneri yeniden başlat
 docker compose restart
 ```
 
-## 验证脚本注入
+## Betik Enjeksiyonunu Doğrulama
 
-### 检查日志
-
-```bash
-# 查看脚本注入相关日志
-docker compose logs | grep -E "(脚本注入|script.*inject|模型增强)"
-
-# 实时监控日志
-docker compose logs -f | grep -E "(脚本注入|script.*inject|模型增强)"
-```
-
-### 预期日志输出
-
-成功的脚本注入应该显示类似以下日志：
-
-```
-设置网络拦截和脚本注入...
-成功设置模型列表网络拦截
-成功解析 6 个模型从油猴脚本
-添加了 6 个注入的模型到API模型列表
-✅ 脚本注入成功，模型显示效果与油猴脚本100%一致
-   解析的模型: 👑 Kingfall, ✨ Gemini 2.5 Pro, 🦁 Goldmane...
-```
-
-### 进入容器检查
+### Günlükleri kontrol et
 
 ```bash
-# 进入容器
+# betik enjeksiyonu ile ilgili günlükleri görüntüle
+docker compose logs | grep -E "(Script injection|script.*inject|Model enhancement)"
+
+# günlükleri anlık izle
+docker compose logs -f | grep -E "(Script injection|script.*inject|Model enhancement)"
+```
+
+### Beklenen günlük çıktısı
+
+Başarılı bir betik enjeksiyonu aşağıdakine benzer günlükler üretir:
+
+```
+Ağ engelleme ve betik enjeksiyonu ayarlanıyor...
+Model listesi için ağ engelleme başarıyla yapılandırıldı
+Tampermonkey betiğinden 6 model ayrıştırıldı
+API model listesine 6 enjeksiyon modeli eklendi
+✅ Betik enjeksiyonu başarılı, modeller Tampermonkey betiği ile birebir aynı görünüyor
+   Ayrıştırılan modeller: 👑 Kingfall, ✨ Gemini 2.5 Pro, 🦁 Goldmane...
+```
+
+### Konteyner içinde kontrol et
+
+```bash
+# konteynere gir
 docker compose exec ai-studio-proxy /bin/bash
 
-# 检查脚本文件
+# betik dosyasını incele
 cat /app/browser_utils/more_modles.js
 
-# 检查脚本文件列表
+# betik dosyası listesini kontrol et
 ls -la /app/browser_utils/*.js
 
-# 退出容器
+# konteynerden çık
 exit
 ```
 
-## 故障排除
+## Sorun Giderme
 
-### 脚本注入失败
+### Betik enjeksiyonu başarısızse
 
-1. **检查配置文件路径**：
+1. **Yapılandırma dosyası yolunu kontrol et**:
    ```bash
    docker compose exec ai-studio-proxy ls -la /app/browser_utils/
    ```
 
-2. **检查文件权限**：
+2. **Dosya izinlerini kontrol et**:
    ```bash
    docker compose exec ai-studio-proxy cat /app/browser_utils/more_modles.js
    ```
 
-3. **查看详细错误日志**：
+3. **Ayrıntılı hata günlüklerini incele**:
    ```bash
-   docker compose logs | grep -A 5 -B 5 "脚本注入"
+   docker compose logs | grep -A 5 -B 5 "Script injection"
    ```
 
-### 脚本文件无效
+### Betik dosyası geçersizse
 
-1. **验证 JavaScript 格式**：
+1. **JavaScript biçimini doğrula**:
    ```bash
-   # 在主机上验证 JavaScript 语法
+   # JavaScript söz dizimini ana makinede doğrula
    node -c browser_utils/more_modles.js
    ```
 
-2. **检查必需字段**：
-   确保每个模型都有 `name` 和 `displayName` 字段。
+2. **Gerekli alanları kontrol et**:
+   Her modelin `name` ve `displayName` alanlarına sahip olduğundan emin olun.
 
-### 禁用脚本注入
+### Betik enjeksiyonunu devre dışı bırakma
 
-如果遇到问题，可以临时禁用：
+Sorun yaşarsanız geçici olarak devre dışı bırakabilirsiniz:
 
 ```bash
-# 在 .env 文件中设置
+# .env dosyasında ayarla
 echo "ENABLE_SCRIPT_INJECTION=false" >> .env
 
-# 重启容器
+# konteyneri yeniden başlat
 docker compose restart
 ```
 
-## 高级配置
+## Gelişmiş Yapılandırma
 
-### 使用自定义脚本
+### Özel betik kullanma
 
 ```bash
-# 1. 将自定义脚本放在 browser_utils/ 目录
+# 1. Özel betiği browser_utils/ dizinine yerleştir
 cp your_custom_script.js ../browser_utils/custom_injector.js
 
-# 2. 在 .env 中修改脚本路径
+# 2. .env dosyasında betik yolunu güncelle
 echo "USERSCRIPT_PATH=browser_utils/custom_injector.js" >> .env
 
-# 3. 重启容器
+# 3. Konteyneri yeniden başlat
 docker compose restart
 ```
 
-### 多环境配置
+### Çoklu ortam yapılandırması
 
 ```bash
-# 开发环境
+# geliştirme ortamı
 cp .env.docker .env.dev
-# 编辑 .env.dev
+# .env.dev dosyasını düzenle
 
-# 生产环境
+# üretim ortamı
 cp .env.docker .env.prod
-# 编辑 .env.prod
+# .env.prod dosyasını düzenle
 
-# 使用特定环境启动
+# belirli bir ortamla başlat
 cp .env.prod .env
 docker compose up -d
 ```
 
-## 注意事项
+## Dikkat Edilecekler
 
-1. **文件挂载**: 确保主机上的文件路径正确
-2. **权限问题**: Docker 容器内的文件权限可能需要调整
-3. **重启生效**: 配置更改后需要重启容器
-4. **日志监控**: 通过日志确认脚本注入状态
-5. **备份配置**: 建议备份工作的配置文件
+1. **Dosya bağlama**: Ana makinedeki dosya yollarının doğru olduğundan emin olun.
+2. **İzin sorunları**: Docker konteynerindeki dosya izinlerinin güncellenmesi gerekebilir.
+3. **Yeniden başlatma zorunluluğu**: Yapılandırma değişiklikleri sonrasında konteyneri yeniden başlatın.
+4. **Günlük izleme**: Betik enjeksiyonunun durumunu günlüklerden takip edin.
+5. **Yedekleme**: Çalışan yapılandırma dosyalarını yedeklemeniz önerilir.
 
-## 示例配置文件
+## Örnek yapılandırma dosyası
 
-参考 `model_configs_docker_example.json` 文件了解完整的配置格式和选项。
+Tam yapılandırma biçimi ve seçenekleri için `model_configs_docker_example.json` dosyasına bakabilirsiniz.

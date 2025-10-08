@@ -15,10 +15,10 @@ from urllib.parse import urlparse
 import shlex
 import logging
 import json
-import requests # 新增导入
+import requests # Yeni eklenen içe aktarma
 from dotenv import load_dotenv
 
-# 加载 .env 文件
+# .env dosyasını yükle
 load_dotenv()
 
 from config import ENABLE_QWEN_LOGIN_SUPPORT
@@ -29,12 +29,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LAUNCH_CAMOUFOX_PY = os.path.join(SCRIPT_DIR, "launch_camoufox.py")
 SERVER_PY_FILENAME = "server.py" # For context
 
-AUTH_PROFILES_DIR = os.path.join(SCRIPT_DIR, "auth_profiles") # 确保这些目录存在
+AUTH_PROFILES_DIR = os.path.join(SCRIPT_DIR, "auth_profiles") # Bu dizinlerin varlığını sağla
 ACTIVE_AUTH_DIR = os.path.join(AUTH_PROFILES_DIR, "active")
 SAVED_AUTH_DIR = os.path.join(AUTH_PROFILES_DIR, "saved")
 
 DEFAULT_FASTAPI_PORT = int(os.environ.get('DEFAULT_FASTAPI_PORT', '2048'))
-DEFAULT_CAMOUFOX_PORT_GUI = int(os.environ.get('DEFAULT_CAMOUFOX_PORT', '9222'))  # 与 launch_camoufox.py 中的 DEFAULT_CAMOUFOX_PORT 一致
+DEFAULT_CAMOUFOX_PORT_GUI = int(os.environ.get('DEFAULT_CAMOUFOX_PORT', '9222'))  # launch_camoufox.py içindeki DEFAULT_CAMOUFOX_PORT ile uyumlu olmalı
 
 managed_process_info: Dict[str, Any] = {
     "popen": None,
@@ -43,15 +43,15 @@ managed_process_info: Dict[str, Any] = {
     "stdout_thread": None,
     "stderr_thread": None,
     "output_area": None,
-    "fully_detached": False # 新增：标记进程是否完全独立
+    "fully_detached": False # Yeni: sürecin tamamen bağımsız olup olmadığını işaretler
 }
 
-# 添加按钮防抖机制
+# Düğme debounce mekanizması ekle
 button_debounce_info: Dict[str, float] = {}
 
 def debounce_button(func_name: str, delay_seconds: float = 2.0):
     """
-    按钮防抖装饰器，防止在指定时间内重复执行同一函数
+    Düğme debounce dekoratörü, belirtilen süre içinde aynı işlevin tekrar tekrar yürütülmesini önler
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
@@ -60,7 +60,7 @@ def debounce_button(func_name: str, delay_seconds: float = 2.0):
             last_call_time = button_debounce_info.get(func_name, 0)
 
             if current_time - last_call_time < delay_seconds:
-                logger.info(f"按钮防抖：忽略 {func_name} 的重复调用")
+                logger.info(f"Düğme debounce: {func_name} tekrar çağrısı yoksayılıyor")
                 return
 
             button_debounce_info[func_name] = current_time
@@ -68,7 +68,7 @@ def debounce_button(func_name: str, delay_seconds: float = 2.0):
         return wrapper
     return decorator
 
-# 添加全局logger定义
+# Global logger tanımı ekle
 logger = logging.getLogger("GUILauncher")
 logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
@@ -79,20 +79,20 @@ file_handler = logging.FileHandler(os.path.join(SCRIPT_DIR, "logs", "gui_launche
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
-# 在LANG_TEXTS声明之前定义长文本
-service_closing_guide_message_zh = """由于服务在独立终端中运行，您可以通过以下方式关闭服务：
+# LANG_TEXTS bildirimi öncesi uzun metinleri tanımlayın
+service_closing_guide_message_zh = """Hizmet bağımsız bir terminalde çalıştığı için, hizmeti aşağıdaki yollarla kapatabilirsiniz:
 
-1. 使用端口管理功能:
-   - 点击"查询端口进程"按钮
-   - 选择相关的Python进程
-   - 点击"停止选中进程"
+1. Port yönetimi işlevini kullanma:
+   - "Port işlemlerini sorgula" düğmesine tıklayın
+   - İlgili Python işlemini seçin
+   - "Seçilen işlemi durdur" seçeneğine tıklayın
 
-2. 手动终止进程:
-   - Windows: 使用任务管理器
-   - macOS: 使用活动监视器或terminal
-   - Linux: 使用kill命令
+2. İşlemi manuel olarak sonlandırma:
+   - Windows: Görev Yöneticisini kullan
+   - macOS: Activity Monitor veya terminal kullan
+   - Linux: kill komutunu kullan
 
-3. 直接关闭服务运行的终端窗口"""
+3. Hizmetin çalıştığı terminal penceresini doğrudan kapat"""
 
 service_closing_guide_message_en = """Since the service runs in an independent terminal, you can close it using these methods:
 
@@ -108,210 +108,210 @@ service_closing_guide_message_en = """Since the service runs in an independent t
 
 3. Directly close the terminal window running the service"""
 
-# --- Internationalization (i18n) ---
+# --- Uluslararasılaştırma (i18n) ---
 LANG_TEXTS = {
-    "title": {"zh": "AI Studio Proxy API Launcher GUI", "en": "AI Studio Proxy API Launcher GUI"},
-    "status_idle": {"zh": "空闲，请选择操作。", "en": "Idle. Select an action."},
-    "port_section_label": {"zh": "服务端口配置", "en": "Service Port Configuration"},
-    "port_input_description_lbl": {"zh": "提示: 启动时将使用下方指定的FastAPI服务端口和Camoufox调试端口。", "en": "Note: The FastAPI service port and Camoufox debug port specified below will be used for launch."},
-    "fastapi_port_label": {"zh": "FastAPI 服务端口:", "en": "FastAPI Port:"},
-    "camoufox_debug_port_label": {"zh": "Camoufox 调试端口:", "en": "Camoufox Debug Port:"},
-    "query_pids_btn": {"zh": "查询端口进程", "en": "Query Port Processes"},
-    "stop_selected_pid_btn": {"zh": "停止选中进程", "en": "Stop Selected Process"},
-    "pids_on_port_label": {"zh": "端口占用情况 (PID - 名称):", "en": "Processes on Port (PID - Name):"}, # Static version for initialization
-    "pids_on_port_label_dynamic": {"zh": "端口 {port} 占用情况 (PID - 名称):", "en": "Processes on Port {port} (PID - Name):"}, # Dynamic version
-    "no_pids_found": {"zh": "未找到占用该端口的进程。", "en": "No processes found on this port."},
-    "static_pid_list_title": {"zh": "启动所需端口占用情况 (PID - 名称)", "en": "Required Ports Usage (PID - Name)"}, # 新增标题
-    "launch_options_label": {"zh": "启动选项", "en": "Launch Options"},
-    "launch_options_note_revised": {"zh": "提示：有头/无头模式均会在新的独立终端窗口中启动服务。\n有头模式用于调试和认证。无头模式需预先认证。\n关闭此GUI不会停止已独立启动的服务。",
+    "title": {"zh": "AI Studio Proxy API Başlatıcı Arayüzü", "en": "AI Studio Proxy API Launcher GUI"},
+    "status_idle": {"zh": "Boşta, bir işlem seçin.", "en": "Idle. Select an action."},
+    "port_section_label": {"zh": "Servis Port Yapılandırması", "en": "Service Port Configuration"},
+    "port_input_description_lbl": {"zh": "Not: Aşağıda belirtilen FastAPI servis portu ve Camoufox hata ayıklama portu başlatma için kullanılacaktır.", "en": "Note: The FastAPI service port and Camoufox debug port specified below will be used for launch."},
+    "fastapi_port_label": {"zh": "FastAPI Servis Portu:", "en": "FastAPI Port:"},
+    "camoufox_debug_port_label": {"zh": "Camoufox Hata Ayıklama Portu:", "en": "Camoufox Debug Port:"},
+    "query_pids_btn": {"zh": "Port İşlemlerini Sorgula", "en": "Query Port Processes"},
+    "stop_selected_pid_btn": {"zh": "Seçilen İşlemi Durdur", "en": "Stop Selected Process"},
+    "pids_on_port_label": {"zh": "Port Kullanım Durumu (PID - Ad):", "en": "Processes on Port (PID - Name):"}, # Static version for initialization
+    "pids_on_port_label_dynamic": {"zh": "Port {port} Kullanım Durumu (PID - Ad):", "en": "Processes on Port {port} (PID - Name):"}, # Dynamic version
+    "no_pids_found": {"zh": "Bu portta işlem bulunamadı.", "en": "No processes found on this port."},
+    "static_pid_list_title": {"zh": "Başlatma İçin Gerekli Port Kullanımı (PID - Ad)", "en": "Required Ports Usage (PID - Name)"}, # Yeni başlık
+    "launch_options_label": {"zh": "Başlatma Seçenekleri", "en": "Launch Options"},
+    "launch_options_note_revised": {"zh": "İpucu: Başlıklı/Başlıksız modlar hizmeti yeni bağımsız bir terminal penceresinde başlatır.\nBaşlıklı mod hata ayıklama ve kimlik doğrulama içindir. Başlıksız mod önceden kimlik doğrulaması gerektirir.\nBu arayüzü kapatmak bağımsız olarak başlatılan hizmetleri durdurmaz.",
                                     "en": "Tip: Headed/Headless modes will launch the service in a new independent terminal window.\nHeaded mode is for debug and auth. Headless mode requires pre-auth.\nClosing this GUI will NOT stop independently launched services."},
-    "launch_headed_interactive_btn": {"zh": "启动有头模式 (新终端)", "en": "Launch Headed Mode (New Terminal)"},
-    "launch_headless_btn": {"zh": "启动无头模式 (新终端)", "en": "Launch Headless Mode (New Terminal)"},
-    "launch_virtual_display_btn": {"zh": "启动虚拟显示模式 (Linux)", "en": "Launch Virtual Display (Linux)"},
-    "stop_gui_service_btn": {"zh": "停止当前GUI管理的服务", "en": "Stop Current GUI-Managed Service"},
-    "status_label": {"zh": "状态", "en": "Status"},
-    "output_label": {"zh": "输出日志", "en": "Output Log"},
+    "launch_headed_interactive_btn": {"zh": "Başlıklı Modu Başlat (Yeni Terminal)", "en": "Launch Headed Mode (New Terminal)"},
+    "launch_headless_btn": {"zh": "Başlıksız Modu Başlat (Yeni Terminal)", "en": "Launch Headless Mode (New Terminal)"},
+    "launch_virtual_display_btn": {"zh": "Sanal Ekran Modunu Başlat (Linux)", "en": "Launch Virtual Display (Linux)"},
+    "stop_gui_service_btn": {"zh": "Mevcut Arayüzle Yönetilen Hizmeti Durdur", "en": "Stop Current GUI-Managed Service"},
+    "status_label": {"zh": "Durum", "en": "Status"},
+    "output_label": {"zh": "Çıktı Günlüğü", "en": "Output Log"},
     "menu_language_fixed": {"zh": "Language", "en": "Language"},
-    "menu_lang_zh_option": {"zh": "中文 (Chinese)", "en": "中文 (Chinese)"},
-    "menu_lang_en_option": {"zh": "英文 (English)", "en": "英文 (English)"},
-    "confirm_quit_title": {"zh": "确认退出", "en": "Confirm Quit"},
-    "confirm_quit_message": {"zh": "服务可能仍在独立终端中运行。确认退出GUI吗?", "en": "Services may still be running in independent terminals. Confirm quit GUI?"},
-    "confirm_quit_message_independent": {"zh": "独立后台服务 '{service_name}' 可能仍在运行。直接退出GUI吗 (服务将继续运行)?", "en": "Independent background service '{service_name}' may still be running. Quit GUI (service will continue to run)?"},
-    "error_title": {"zh": "错误", "en": "Error"},
-    "info_title": {"zh": "信息", "en": "Info"},
-    "warning_title": {"zh": "警告", "en": "Warning"},
-    "service_already_running": {"zh": "服务 ({service_name}) 已在运行。", "en": "A service ({service_name}) is already running."},
-    "proxy_config_title": {"zh": "代理配置", "en": "Proxy Configuration"},
-    "proxy_config_message_generic": {"zh": "是否为此启动启用 HTTP/HTTPS 代理?", "en": "Enable HTTP/HTTPS proxy for this launch?"},
-    "proxy_address_title": {"zh": "代理地址", "en": "Proxy Address"},
-    "proxy_address_prompt": {"zh": "输入代理地址 (例如 http://host:port)\n默认: {default_proxy}", "en": "Enter proxy address (e.g., http://host:port)\nDefault: {default_proxy}"},
-    "proxy_configured_status": {"zh": "代理已配置: {proxy_addr}", "en": "Proxy configured: {proxy_addr}"},
-    "proxy_skip_status": {"zh": "用户跳过代理设置。", "en": "Proxy setup skipped by user."},
-    "script_not_found_error_msgbox": {"zh": "启动失败: 未找到 Python 执行文件或脚本。\n命令: {cmd}", "en": "Failed to start: Python executable or script not found.\nCommand: {cmd}"},
-    "startup_error_title": {"zh": "启动错误", "en": "Startup Error"},
-    "startup_script_not_found_msgbox": {"zh": "必需的脚本 '{script}' 在当前目录未找到。\n请将此GUI启动器与 launch_camoufox.py 和 server.py 放在同一目录。", "en": "Required script '{script}' not found in the current directory.\nPlace this GUI launcher in the same directory as launch_camoufox.py and server.py."},
-    "service_starting_status": {"zh": "{service_name} 启动中... PID: {pid}", "en": "{service_name} starting... PID: {pid}"},
-    "service_stopped_gracefully_status": {"zh": "{service_name} 已平稳停止。", "en": "{service_name} stopped gracefully."},
-    "service_stopped_exit_code_status": {"zh": "{service_name} 已停止。退出码: {code}", "en": "{service_name} stopped. Exit code: {code}"},
-    "service_stop_fail_status": {"zh": "{service_name} (PID: {pid}) 未能平稳终止。正在强制停止...", "en": "{service_name} (PID: {pid}) did not terminate gracefully. Forcing kill..."},
-    "service_killed_status": {"zh": "{service_name} (PID: {pid}) 已被强制停止。", "en": "{service_name} (PID: {pid}) killed."},
-    "error_stopping_service_msgbox": {"zh": "停止 {service_name} (PID: {pid}) 时出错: {e}", "en": "Error stopping {service_name} (PID: {pid}): {e}"},
-    "no_service_running_status": {"zh": "当前没有GUI管理的服务在运行。", "en": "No GUI-managed service is currently running."},
-    "stopping_initiated_status": {"zh": "{service_name} (PID: {pid}) 停止已启动。最终状态待定。", "en": "{service_name} (PID: {pid}) stopping initiated. Final status pending."},
-    "service_name_headed_interactive": {"zh": "有头交互服务", "en": "Headed Interactive Service"},
-    "service_name_headless": {"zh": "无头服务", "en": "Headless Service"}, # Key 修改
-    "service_name_virtual_display": {"zh": "虚拟显示无头服务", "en": "Virtual Display Headless Service"},
-    "status_headed_launch": {"zh": "有头模式：启动中，请关注新控制台的提示...", "en": "Headed Mode: Launching, check new console for prompts..."},
-    "status_headless_launch": {"zh": "无头服务：启动中...新的独立终端将打开。", "en": "Headless Service: Launching... A new independent terminal will open."},
-    "status_virtual_display_launch": {"zh": "虚拟显示模式启动中...", "en": "Virtual Display Mode launching..."},
-    "info_service_is_independent": {"zh": "当前服务为独立后台进程，关闭GUI不会停止它。请使用系统工具或端口管理手动停止此服务。", "en": "The current service is an independent background process. Closing the GUI will not stop it. Please manage this service manually using system tools or port management."},
-    "info_service_new_terminal": {"zh": "服务已在新的独立终端启动。关闭此GUI不会影响该服务。", "en": "Service has been launched in a new independent terminal. Closing this GUI will not affect the service."},
-    "warn_cannot_stop_independent_service": {"zh": "通过此GUI启动的服务在独立终端中运行，无法通过此按钮停止。请直接管理其终端或使用系统工具。", "en": "Services launched via this GUI run in independent terminals and cannot be stopped by this button. Please manage their terminals directly or use system tools."},
-    "enter_valid_port_warn": {"zh": "请输入有效的端口号 (1024-65535)。", "en": "Please enter a valid port number (1024-65535)."},
-    "pid_list_empty_for_stop_warn": {"zh": "进程列表为空或未选择进程。", "en": "PID list is empty or no process selected."},
-    "confirm_stop_pid_title": {"zh": "确认停止进程", "en": "Confirm Stop Process"},
-    "confirm_stop_pid_message": {"zh": "确定要尝试停止 PID {pid} ({name}) 吗?", "en": "Are you sure you want to attempt to stop PID {pid} ({name})?"},
-    "confirm_stop_pid_admin_title": {"zh": "以管理员权限停止进程", "en": "Stop Process with Admin Privileges"},
-    "confirm_stop_pid_admin_message": {"zh": "以普通权限停止 PID {pid} ({name}) 可能失败。是否尝试使用管理员权限停止?", "en": "Stopping PID {pid} ({name}) with normal privileges may fail. Try with admin privileges?"},
-    "admin_stop_success": {"zh": "已成功使用管理员权限停止 PID {pid}", "en": "Successfully stopped PID {pid} with admin privileges"},
-    "admin_stop_failure": {"zh": "使用管理员权限停止 PID {pid} 失败: {error}", "en": "Failed to stop PID {pid} with admin privileges: {error}"},
-    "status_error_starting": {"zh": "启动 {service_name} 失败。", "en": "Error starting {service_name}"},
-    "status_script_not_found": {"zh": "错误: 未找到 {service_name} 的可执行文件/脚本。", "en": "Error: Executable/script not found for {service_name}."},
-    "error_getting_process_name": {"zh": "获取 PID {pid} 的进程名失败。", "en": "Failed to get process name for PID {pid}."},
-    "pid_info_format": {"zh": "PID: {pid} (端口: {port}) - 名称: {name}", "en": "PID: {pid} (Port: {port}) - Name: {name}"},
-    "status_stopping_service": {"zh": "正在停止 {service_name} (PID: {pid})...", "en": "Stopping {service_name} (PID: {pid})..."},
-    "error_title_invalid_selection": {"zh": "无效的选择格式: {selection}", "en": "Invalid selection format: {selection}"},
-    "error_parsing_pid": {"zh": "无法从 '{selection}' 解析PID。", "en": "Could not parse PID from '{selection}'."},
-    "terminate_request_sent": {"zh": "终止请求已发送。", "en": "Termination request sent."},
-    "terminate_attempt_failed": {"zh": "尝试终止 PID {pid} ({name}) 可能失败。", "en": "Attempt to terminate PID {pid} ({name}) may have failed."},
-    "unknown_process_name_placeholder": {"zh": "未知进程名", "en": "Unknown Process Name"},
-    "kill_custom_pid_label": {"zh": "或输入PID终止:", "en": "Or Enter PID to Kill:"},
-    "kill_custom_pid_btn": {"zh": "终止指定PID", "en": "Kill Specified PID"},
-    "pid_input_empty_warn": {"zh": "请输入要终止的PID。", "en": "Please enter a PID to kill."},
-    "pid_input_invalid_warn": {"zh": "输入的PID无效，请输入纯数字。", "en": "Invalid PID entered. Please enter numbers only."},
-    "confirm_kill_custom_pid_title": {"zh": "确认终止PID", "en": "Confirm Kill PID"},
-    "status_sending_sigint": {"zh": "正在向 {service_name} (PID: {pid}) 发送 SIGINT...", "en": "Sending SIGINT to {service_name} (PID: {pid})..."},
-    "status_waiting_after_sigint": {"zh": "{service_name} (PID: {pid})：SIGINT 已发送，等待 {timeout} 秒优雅退出...", "en": "{service_name} (PID: {pid}): SIGINT sent, waiting {timeout}s for graceful exit..."},
-    "status_sigint_effective": {"zh": "{service_name} (PID: {pid}) 已响应 SIGINT 并停止。", "en": "{service_name} (PID: {pid}) responded to SIGINT and stopped."},
-    "status_sending_sigterm": {"zh": "{service_name} (PID: {pid})：未在规定时间内响应 SIGINT，正在发送 SIGTERM...", "en": "{service_name} (PID: {pid}): Did not respond to SIGINT in time, sending SIGTERM..."},
-    "status_waiting_after_sigterm": {"zh": "{service_name} (PID: {pid})：SIGTERM 已发送，等待 {timeout} 秒优雅退出...", "en": "{service_name} (PID: {pid}): SIGTERM sent, waiting {timeout}s for graceful exit..."},
-    "status_sigterm_effective": {"zh": "{service_name} (PID: {pid}) 已响应 SIGTERM 并停止。", "en": "{service_name} (PID: {pid}) responded to SIGTERM and stopped."},
-    "status_forcing_kill": {"zh": "{service_name} (PID: {pid})：未在规定时间内响应 SIGTERM，正在强制终止 (SIGKILL)...", "en": "{service_name} (PID: {pid}): Did not respond to SIGTERM in time, forcing kill (SIGKILL)..."},
-    "enable_stream_proxy_label": {"zh": "启用流式代理服务", "en": "Enable Stream Proxy Service"},
-    "stream_proxy_port_label": {"zh": "流式代理端口:", "en": "Stream Proxy Port:"},
-    "enable_helper_label": {"zh": "启用外部Helper服务", "en": "Enable External Helper Service"},
-    "helper_endpoint_label": {"zh": "Helper端点URL:", "en": "Helper Endpoint URL:"},
-    "auth_manager_title": {"zh": "认证文件管理", "en": "Authentication File Manager"},
-    "saved_auth_files_label": {"zh": "已保存的认证文件:", "en": "Saved Authentication Files:"},
-    "no_file_selected": {"zh": "请选择一个认证文件", "en": "Please select an authentication file"},
-    "auth_file_activated": {"zh": "认证文件 '{file}' 已成功激活", "en": "Authentication file '{file}' has been activated successfully"},
-    "error_activating_file": {"zh": "激活文件 '{file}' 时出错: {error}", "en": "Error activating file '{file}': {error}"},
-    "activate_selected_btn": {"zh": "激活选中的文件", "en": "Activate Selected File"},
-    "deactivate_btn": {"zh": "移除当前认证", "en": "Remove Current Auth"},
-    "confirm_deactivate_title": {"zh": "确认移除认证", "en": "Confirm Auth Removal"},
-    "confirm_deactivate_message": {"zh": "确定要移除当前激活的认证吗？这将导致后续启动不使用任何认证文件。", "en": "Are you sure you want to remove the currently active authentication? This will cause subsequent launches to use no authentication file."},
-    "auth_deactivated_success": {"zh": "已成功移除当前认证。", "en": "Successfully removed current authentication."},
-    "error_deactivating_auth": {"zh": "移除认证时出错: {error}", "en": "Error removing authentication: {error}"},
-    "create_new_auth_btn": {"zh": "创建新认证文件", "en": "Create New Auth File"},
-    "create_new_auth_instructions_title": {"zh": "创建新认证文件说明", "en": "Create New Auth File Instructions"},
-    "create_new_auth_instructions_message": {"zh": "即将打开一个新的浏览器窗口以供您登录。\n\n登录成功后，请返回运行此程序的终端，并根据提示输入一个文件名来保存您的认证信息。\n\n准备好后请点击“确定”。", "en": "A new browser window will open for you to log in.\n\nAfter successful login, please return to the terminal running this program and enter a filename to save your authentication credentials when prompted.\n\nClick OK when you are ready to proceed."},
-    "create_new_auth_instructions_message_revised": {"zh": "即将打开一个新的浏览器窗口以供您登录。\n\n登录成功后，认证文件将自动保存为 '{filename}.json'。\n\n准备好后请点击“确定”。", "en": "A new browser window will open for you to log in.\n\nAfter successful login, the authentication file will be automatically saved as '{filename}.json'.\n\nClick OK when you are ready to proceed."},
-    "create_new_auth_filename_prompt_title": {"zh": "输入认证文件名", "en": "Enter Auth Filename"},
-    "service_name_auth_creation": {"zh": "认证文件创建服务", "en": "Auth File Creation Service"},
-    "cancel_btn": {"zh": "取消", "en": "Cancel"},
-    "auth_files_management": {"zh": "认证文件管理", "en": "Auth Files Management"},
-    "manage_auth_files_btn": {"zh": "管理认证文件", "en": "Manage Auth Files"},
-    "no_saved_auth_files": {"zh": "保存目录中没有认证文件", "en": "No authentication files in saved directory"},
-    "auth_dirs_missing": {"zh": "认证目录不存在，请确保目录结构正确", "en": "Authentication directories missing, please ensure correct directory structure"},
-    "auth_disabled_title": {"zh": "登录功能已禁用", "en": "Login Disabled"},
-    "auth_disabled_message": {"zh": "Qwen 模式下无需登录，相关认证功能已禁用。", "en": "Qwen login support is disabled; authentication files are not used."},
-    "confirm_kill_port_title": {"zh": "确认清理端口", "en": "Confirm Port Cleanup"},
-    "confirm_kill_port_message": {"zh": "端口 {port} 被以下PID占用: {pids}。是否尝试终止这些进程?", "en": "Port {port} is in use by PID(s): {pids}. Try to terminate them?"},
-    "port_cleared_success": {"zh": "端口 {port} 已成功清理", "en": "Port {port} has been cleared successfully"},
-    "port_still_in_use": {"zh": "端口 {port} 仍被占用，请手动处理", "en": "Port {port} is still in use, please handle manually"},
-    "port_in_use_no_pids": {"zh": "端口 {port} 被占用，但无法识别进程", "en": "Port {port} is in use, but processes cannot be identified"},
-    "error_removing_file": {"zh": "删除文件 '{file}' 时出错: {error}", "en": "Error removing file '{file}': {error}"},
-    "stream_port_out_of_range": {"zh": "流式代理端口必须为0(禁用)或1024-65535之间的值", "en": "Stream proxy port must be 0 (disabled) or a value between 1024-65535"},
-    "port_auto_check": {"zh": "启动前自动检查端口", "en": "Auto-check port before launch"},
-    "auto_port_check_enabled": {"zh": "已启用端口自动检查", "en": "Port auto-check enabled"},
-    "port_check_running": {"zh": "正在检查端口 {port}...", "en": "Checking port {port}..."},
-    "port_name_fastapi": {"zh": "FastAPI服务", "en": "FastAPI Service"},
-    "port_name_camoufox_debug": {"zh": "Camoufox调试", "en": "Camoufox Debug"},
-    "port_name_stream_proxy": {"zh": "流式代理", "en": "Stream Proxy"},
-    "checking_port_with_name": {"zh": "正在检查{port_name}端口 {port}...", "en": "Checking {port_name} port {port}..."},
-    "port_check_all_completed": {"zh": "所有端口检查完成", "en": "All port checks completed"},
-    "port_check_failed": {"zh": "{port_name}端口 {port} 检查失败，启动已中止", "en": "{port_name} port {port} check failed, launch aborted"},
-    "port_name_helper_service": {"zh": "Helper服务", "en": "Helper Service"},
-    "confirm_kill_multiple_ports_title": {"zh": "确认清理多个端口", "en": "Confirm Multiple Ports Cleanup"},
-    "confirm_kill_multiple_ports_message": {"zh": "以下端口被占用:\n{occupied_ports_details}\n是否尝试终止这些进程?", "en": "The following ports are in use:\n{occupied_ports_details}\nAttempt to terminate these processes?"},
-    "all_ports_cleared_success": {"zh": "所有选定端口已成功清理。", "en": "All selected ports have been cleared successfully."},
-    "some_ports_still_in_use": {"zh": "部分端口在清理后仍被占用，请手动处理。启动已中止。", "en": "Some ports are still in use after cleanup attempt. Please handle manually. Launch aborted."},
-    "port_check_user_declined_cleanup": {"zh": "用户选择不清理占用的端口，启动已中止。", "en": "User chose not to clean up occupied ports. Launch aborted."},
-    "reset_button": {"zh": "重置为默认设置", "en": "Reset to Defaults"},
-    "confirm_reset_title": {"zh": "确认重置", "en": "Confirm Reset"},
-    "confirm_reset_message": {"zh": "确定要重置所有设置为默认值吗？", "en": "Are you sure you want to reset all settings to default values?"},
-    "reset_success": {"zh": "已重置为默认设置", "en": "Reset to default settings successfully"},
-    "proxy_config_last_used": {"zh": "使用上次的代理: {proxy}", "en": "Using last proxy: {proxy}"},
-    "proxy_config_other": {"zh": "使用其他代理地址", "en": "Use a different proxy address"},
-    "service_closing_guide": {"zh": "关闭服务指南", "en": "Service Closing Guide"},
-    "service_closing_guide_btn": {"zh": "如何关闭服务?", "en": "How to Close Service?"},
+    "menu_lang_zh_option": {"zh": "Çince (Chinese)", "en": "Çince (Chinese)"},
+    "menu_lang_en_option": {"zh": "İngilizce (English)", "en": "İngilizce (English)"},
+    "confirm_quit_title": {"zh": "Çıkışı Onayla", "en": "Confirm Quit"},
+    "confirm_quit_message": {"zh": "Hizmetler hala bağımsız terminallerde çalışabilir. Arayüzden çıkmayı onaylıyor musunuz?", "en": "Services may still be running in independent terminals. Confirm quit GUI?"},
+    "confirm_quit_message_independent": {"zh": "Bağımsız arka plan hizmeti '{service_name}' hala çalışıyor olabilir. Arayüzden çıkılsın mı (hizmet çalışmaya devam edecek)?", "en": "Independent background service '{service_name}' may still be running. Quit GUI (service will continue to run)?"},
+    "error_title": {"zh": "Hata", "en": "Error"},
+    "info_title": {"zh": "Bilgi", "en": "Info"},
+    "warning_title": {"zh": "Uyarı", "en": "Warning"},
+    "service_already_running": {"zh": "Hizmet ({service_name}) zaten çalışıyor.", "en": "A service ({service_name}) is already running."},
+    "proxy_config_title": {"zh": "Proxy Yapılandırması", "en": "Proxy Configuration"},
+    "proxy_config_message_generic": {"zh": "Bu başlatma için HTTP/HTTPS proxy etkinleştirilsin mi?", "en": "Enable HTTP/HTTPS proxy for this launch?"},
+    "proxy_address_title": {"zh": "Proxy Adresi", "en": "Proxy Address"},
+    "proxy_address_prompt": {"zh": "Proxy adresini girin (örneğin http://host:port)\nVarsayılan: {default_proxy}", "en": "Enter proxy address (e.g., http://host:port)\nDefault: {default_proxy}"},
+    "proxy_configured_status": {"zh": "Proxy yapılandırıldı: {proxy_addr}", "en": "Proxy configured: {proxy_addr}"},
+    "proxy_skip_status": {"zh": "Kullanıcı proxy kurulumunu atladı.", "en": "Proxy setup skipped by user."},
+    "script_not_found_error_msgbox": {"zh": "Başlatma başarısız oldu: Python yürütülebilir dosyası veya komut dosyası bulunamadı.\nKomut: {cmd}", "en": "Failed to start: Python executable or script not found.\nCommand: {cmd}"},
+    "startup_error_title": {"zh": "Başlatma Hatası", "en": "Startup Error"},
+    "startup_script_not_found_msgbox": {"zh": "Gerekli komut dosyası '{script}' mevcut dizinde bulunamadı.\nBu GUI başlatıcısını launch_camoufox.py ve server.py ile aynı dizine yerleştirin.", "en": "Required script '{script}' not found in the current directory.\nPlace this GUI launcher in the same directory as launch_camoufox.py and server.py."},
+    "service_starting_status": {"zh": "{service_name} başlatılıyor... PID: {pid}", "en": "{service_name} starting... PID: {pid}"},
+    "service_stopped_gracefully_status": {"zh": "{service_name} düzgün şekilde durduruldu.", "en": "{service_name} stopped gracefully."},
+    "service_stopped_exit_code_status": {"zh": "{service_name} durduruldu. Çıkış kodu: {code}", "en": "{service_name} stopped. Exit code: {code}"},
+    "service_stop_fail_status": {"zh": "{service_name} (PID: {pid}) düzgün şekilde sonlandırılamadı. Zorla durduruluyor...", "en": "{service_name} (PID: {pid}) did not terminate gracefully. Forcing kill..."},
+    "service_killed_status": {"zh": "{service_name} (PID: {pid}) zorla durduruldu.", "en": "{service_name} (PID: {pid}) killed."},
+    "error_stopping_service_msgbox": {"zh": "{service_name} (PID: {pid}) durdurulurken hata oluştu: {e}", "en": "Error stopping {service_name} (PID: {pid}): {e}"},
+    "no_service_running_status": {"zh": "Şu anda arayüzle yönetilen hizmet yok.", "en": "No GUI-managed service is currently running."},
+    "stopping_initiated_status": {"zh": "{service_name} (PID: {pid}) durdurma başlatıldı. Nihai durum bekleniyor.", "en": "{service_name} (PID: {pid}) stopping initiated. Final status pending."},
+    "service_name_headed_interactive": {"zh": "Başlıklı Etkileşimli Hizmet", "en": "Headed Interactive Service"},
+    "service_name_headless": {"zh": "Başlıksız Hizmet", "en": "Headless Service"}, # Anahtar değiştirildi
+    "service_name_virtual_display": {"zh": "Sanal Ekran Başlıksız Hizmet", "en": "Virtual Display Headless Service"},
+    "status_headed_launch": {"zh": "Başlıklı Mod: Başlatılıyor, yeni konsoldaki istemleri kontrol edin...", "en": "Headed Mode: Launching, check new console for prompts..."},
+    "status_headless_launch": {"zh": "Başlıksız Hizmet: Başlatılıyor... Yeni bağımsız terminal açılacak.", "en": "Headless Service: Launching... A new independent terminal will open."},
+    "status_virtual_display_launch": {"zh": "Sanal Ekran Modu başlatılıyor...", "en": "Virtual Display Mode launching..."},
+    "info_service_is_independent": {"zh": "Mevcut hizmet bağımsız bir arka plan işlemidir, arayüzü kapatmak onu durdurmaz. Lütfen bu hizmeti sistem araçlarını veya port yönetimini kullanarak manuel olarak yönetin.", "en": "The current service is an independent background process. Closing the GUI will not stop it. Please manage this service manually using system tools or port management."},
+    "info_service_new_terminal": {"zh": "Hizmet yeni bağımsız bir terminalde başlatıldı. Bu arayüzü kapatmak hizmeti etkilemez.", "en": "Service has been launched in a new independent terminal. Closing this GUI will not affect the service."},
+    "warn_cannot_stop_independent_service": {"zh": "Bu arayüzle başlatılan hizmetler bağımsız terminallerde çalışır ve bu düğmeyle durdurulamaz. Lütfen doğrudan terminallerini yönetin veya sistem araçlarını kullanın.", "en": "Services launched via this GUI run in independent terminals and cannot be stopped by this button. Please manage their terminals directly or use system tools."},
+    "enter_valid_port_warn": {"zh": "Lütfen geçerli bir port numarası girin (1024-65535).", "en": "Please enter a valid port number (1024-65535)."},
+    "pid_list_empty_for_stop_warn": {"zh": "PID listesi boş veya işlem seçilmedi.", "en": "PID list is empty or no process selected."},
+    "confirm_stop_pid_title": {"zh": "İşlem Durdurmayı Onayla", "en": "Confirm Stop Process"},
+    "confirm_stop_pid_message": {"zh": "PID {pid} ({name}) durdurma girişiminde emin misiniz?", "en": "Are you sure you want to attempt to stop PID {pid} ({name})?"},
+    "confirm_stop_pid_admin_title": {"zh": "Yönetici Ayrıcalıklarıyla İşlemi Durdur", "en": "Stop Process with Admin Privileges"},
+    "confirm_stop_pid_admin_message": {"zh": "PID {pid} ({name}) normal ayrıcalıklarla durdurulması başarısız olabilir. Yönetici ayrıcalıklarıyla denensin mi?", "en": "Stopping PID {pid} ({name}) with normal privileges may fail. Try with admin privileges?"},
+    "admin_stop_success": {"zh": "PID {pid} yönetici ayrıcalıklarıyla başarıyla durduruldu", "en": "Successfully stopped PID {pid} with admin privileges"},
+    "admin_stop_failure": {"zh": "PID {pid} yönetici ayrıcalıklarıyla durdurulamadı: {error}", "en": "Failed to stop PID {pid} with admin privileges: {error}"},
+    "status_error_starting": {"zh": "{service_name} başlatma başarısız oldu.", "en": "Error starting {service_name}"},
+    "status_script_not_found": {"zh": "Hata: {service_name} için yürütülebilir/dosya bulunamadı.", "en": "Error: Executable/script not found for {service_name}."},
+    "error_getting_process_name": {"zh": "PID {pid} için işlem adı alınamadı.", "en": "Failed to get process name for PID {pid}."},
+    "pid_info_format": {"zh": "PID: {pid} (Port: {port}) - Ad: {name}", "en": "PID: {pid} (Port: {port}) - Name: {name}"},
+    "status_stopping_service": {"zh": "{service_name} (PID: {pid}) durduruluyor...", "en": "Stopping {service_name} (PID: {pid})..."},
+    "error_title_invalid_selection": {"zh": "Geçersiz seçim formatı: {selection}", "en": "Invalid selection format: {selection}"},
+    "error_parsing_pid": {"zh": "'{selection}' içinden PID ayrıştırılamadı.", "en": "Could not parse PID from '{selection}'."},
+    "terminate_request_sent": {"zh": "Sonlandırma isteği gönderildi.", "en": "Termination request sent."},
+    "terminate_attempt_failed": {"zh": "PID {pid} ({name}) sonlandırma girişimi başarısız olabilir.", "en": "Attempt to terminate PID {pid} ({name}) may have failed."},
+    "unknown_process_name_placeholder": {"zh": "Bilinmeyen İşlem Adı", "en": "Unknown Process Name"},
+    "kill_custom_pid_label": {"zh": "Veya Sonlandırmak İçin PID Girin:", "en": "Or Enter PID to Kill:"},
+    "kill_custom_pid_btn": {"zh": "Belirtilen PID'yi Sonlandır", "en": "Kill Specified PID"},
+    "pid_input_empty_warn": {"zh": "Lütfen sonlandırmak için bir PID girin.", "en": "Please enter a PID to kill."},
+    "pid_input_invalid_warn": {"zh": "Geçersiz PID girildi, lütfen sadece sayı girin.", "en": "Invalid PID entered. Please enter numbers only."},
+    "confirm_kill_custom_pid_title": {"zh": "PID Sonlandırmayı Onayla", "en": "Confirm Kill PID"},
+    "status_sending_sigint": {"zh": "{service_name} (PID: {pid}) SIGINT gönderiliyor...", "en": "Sending SIGINT to {service_name} (PID: {pid})..."},
+    "status_waiting_after_sigint": {"zh": "{service_name} (PID: {pid}): SIGINT gönderildi, {timeout} saniye düzgün çıkış için bekleniyor...", "en": "{service_name} (PID: {pid}): SIGINT sent, waiting {timeout}s for graceful exit..."},
+    "status_sigint_effective": {"zh": "{service_name} (PID: {pid}) SIGINT'e yanıt verdi ve durdu.", "en": "{service_name} (PID: {pid}) responded to SIGINT and stopped."},
+    "status_sending_sigterm": {"zh": "{service_name} (PID: {pid}): Zamanında SIGINT'e yanıt vermedi, SIGTERM gönderiliyor...", "en": "{service_name} (PID: {pid}): Did not respond to SIGINT in time, sending SIGTERM..."},
+    "status_waiting_after_sigterm": {"zh": "{service_name} (PID: {pid}): SIGTERM gönderildi, {timeout} saniye düzgün çıkış için bekleniyor...", "en": "{service_name} (PID: {pid}): SIGTERM sent, waiting {timeout}s for graceful exit..."},
+    "status_sigterm_effective": {"zh": "{service_name} (PID: {pid}) SIGTERM'e yanıt verdi ve durdu.", "en": "{service_name} (PID: {pid}) responded to SIGTERM and stopped."},
+    "status_forcing_kill": {"zh": "{service_name} (PID: {pid}): Zamanında SIGTERM'e yanıt vermedi, zorla sonlandırılıyor (SIGKILL)...", "en": "{service_name} (PID: {pid}): Did not respond to SIGTERM in time, forcing kill (SIGKILL)..."},
+    "enable_stream_proxy_label": {"zh": "Akış Proxy Hizmetini Etkinleştir", "en": "Enable Stream Proxy Service"},
+    "stream_proxy_port_label": {"zh": "Akış Proxy Portu:", "en": "Stream Proxy Port:"},
+    "enable_helper_label": {"zh": "Harici Yardımcı Hizmeti Etkinleştir", "en": "Enable External Helper Service"},
+    "helper_endpoint_label": {"zh": "Yardımcı Uç Nokta URL'si:", "en": "Helper Endpoint URL:"},
+    "auth_manager_title": {"zh": "Kimlik Doğrulama Dosyası Yöneticisi", "en": "Authentication File Manager"},
+    "saved_auth_files_label": {"zh": "Kayıtlı Kimlik Doğrulama Dosyaları:", "en": "Saved Authentication Files:"},
+    "no_file_selected": {"zh": "Lütfen bir kimlik doğrulama dosyası seçin", "en": "Please select an authentication file"},
+    "auth_file_activated": {"zh": "Kimlik doğrulama dosyası '{file}' başarıyla etkinleştirildi", "en": "Authentication file '{file}' has been activated successfully"},
+    "error_activating_file": {"zh": "Dosya '{file}' etkinleştirilirken hata oluştu: {error}", "en": "Error activating file '{file}': {error}"},
+    "activate_selected_btn": {"zh": "Seçilen Dosyayı Etkinleştir", "en": "Activate Selected File"},
+    "deactivate_btn": {"zh": "Mevcut Kimlik Doğrulamayı Kaldır", "en": "Remove Current Auth"},
+    "confirm_deactivate_title": {"zh": "Kimlik Doğrulama Kaldırmayı Onayla", "en": "Confirm Auth Removal"},
+    "confirm_deactivate_message": {"zh": "Mevcut etkin kimlik doğrulamayı kaldırmak istediğinizden emin misiniz? Bu, sonraki başlatmaların kimlik doğrulama dosyası kullanmamasına neden olur.", "en": "Are you sure you want to remove the currently active authentication? This will cause subsequent launches to use no authentication file."},
+    "auth_deactivated_success": {"zh": "Mevcut kimlik doğrulama başarıyla kaldırıldı.", "en": "Successfully removed current authentication."},
+    "error_deactivating_auth": {"zh": "Kimlik doğrulama kaldırılırken hata oluştu: {error}", "en": "Error removing authentication: {error}"},
+    "create_new_auth_btn": {"zh": "Yeni Kimlik Doğrulama Dosyası Oluştur", "en": "Create New Auth File"},
+    "create_new_auth_instructions_title": {"zh": "Yeni Kimlik Doğrulama Dosyası Oluşturma Talimatları", "en": "Create New Auth File Instructions"},
+    "create_new_auth_instructions_message": {"zh": "Giriş yapmanız için yeni bir tarayıcı penceresi açılacak.\n\nBaşarılı girişten sonra, bu programı çalıştıran terminale dönün ve kimlik doğrulama bilgilerinizi kaydetmek için istemde bulunun.\n\nDevam etmek için Tamam'a tıklayın.", "en": "A new browser window will open for you to log in.\n\nAfter successful login, please return to the terminal running this program and enter a filename to save your authentication credentials when prompted.\n\nClick OK when you are ready to proceed."},
+    "create_new_auth_instructions_message_revised": {"zh": "Giriş yapmanız için yeni bir tarayıcı penceresi açılacak.\n\nBaşarılı girişten sonra, kimlik doğrulama dosyası '{filename}.json' olarak otomatik olarak kaydedilecek.\n\nDevam etmek için Tamam'a tıklayın.", "en": "A new browser window will open for you to log in.\n\nAfter successful login, the authentication file will be automatically saved as '{filename}.json'.\n\nClick OK when you are ready to proceed."},
+    "create_new_auth_filename_prompt_title": {"zh": "Kimlik Doğrulama Dosyası Adını Girin", "en": "Enter Auth Filename"},
+    "service_name_auth_creation": {"zh": "Kimlik Doğrulama Dosyası Oluşturma Hizmeti", "en": "Auth File Creation Service"},
+    "cancel_btn": {"zh": "İptal", "en": "Cancel"},
+    "auth_files_management": {"zh": "Kimlik Doğrulama Dosyaları Yönetimi", "en": "Auth Files Management"},
+    "manage_auth_files_btn": {"zh": "Kimlik Doğrulama Dosyalarını Yönet", "en": "Manage Auth Files"},
+    "no_saved_auth_files": {"zh": "Kayıtlı dizinde kimlik doğrulama dosyası yok", "en": "No authentication files in saved directory"},
+    "auth_dirs_missing": {"zh": "Kimlik doğrulama dizinleri eksik, lütfen doğru dizin yapısını sağlayın", "en": "Authentication directories missing, please ensure correct directory structure"},
+    "auth_disabled_title": {"zh": "Oturum Açma Devre Dışı", "en": "Login Disabled"},
+    "auth_disabled_message": {"zh": "Qwen modunda oturum açma desteği devre dışı; kimlik doğrulama dosyaları kullanılmaz.", "en": "Qwen login support is disabled; authentication files are not used."},
+    "confirm_kill_port_title": {"zh": "Port Temizliğini Onayla", "en": "Confirm Port Cleanup"},
+    "confirm_kill_port_message": {"zh": "Port {port} şu PID(ler) tarafından kullanılıyor: {pids}. Bu işlemleri sonlandırmayı denesin mi?", "en": "Port {port} is in use by PID(s): {pids}. Try to terminate them?"},
+    "port_cleared_success": {"zh": "Port {port} başarıyla temizlendi", "en": "Port {port} has been cleared successfully"},
+    "port_still_in_use": {"zh": "Port {port} hala kullanımda, lütfen manuel olarak işlem yapın", "en": "Port {port} is still in use, please handle manually"},
+    "port_in_use_no_pids": {"zh": "Port {port} kullanımda, ancak işlemler tanımlanamıyor", "en": "Port {port} is in use, but processes cannot be identified"},
+    "error_removing_file": {"zh": "Dosya '{file}' kaldırılırken hata oluştu: {error}", "en": "Error removing file '{file}': {error}"},
+    "stream_port_out_of_range": {"zh": "Akış proxy portu 0 (devre dışı) veya 1024-65535 arası bir değer olmalıdır", "en": "Stream proxy port must be 0 (disabled) or a value between 1024-65535"},
+    "port_auto_check": {"zh": "Başlamadan önce otomatik port kontrolü", "en": "Auto-check port before launch"},
+    "auto_port_check_enabled": {"zh": "Port otomatik kontrolü etkinleştirildi", "en": "Port auto-check enabled"},
+    "port_check_running": {"zh": "Port {port} kontrol ediliyor...", "en": "Checking port {port}..."},
+    "port_name_fastapi": {"zh": "FastAPI Hizmeti", "en": "FastAPI Service"},
+    "port_name_camoufox_debug": {"zh": "Camoufox Hata Ayıklama", "en": "Camoufox Debug"},
+    "port_name_stream_proxy": {"zh": "Akış Proxy", "en": "Stream Proxy"},
+    "checking_port_with_name": {"zh": "{port_name} port {port} kontrol ediliyor...", "en": "Checking {port_name} port {port}..."},
+    "port_check_all_completed": {"zh": "Tüm port kontrolleri tamamlandı", "en": "All port checks completed"},
+    "port_check_failed": {"zh": "{port_name} port {port} kontrolü başarısız oldu, başlatma iptal edildi", "en": "{port_name} port {port} check failed, launch aborted"},
+    "port_name_helper_service": {"zh": "Yardımcı Hizmet", "en": "Helper Service"},
+    "confirm_kill_multiple_ports_title": {"zh": "Çoklu Port Temizliğini Onayla", "en": "Confirm Multiple Ports Cleanup"},
+    "confirm_kill_multiple_ports_message": {"zh": "Aşağıdaki portlar kullanımda:\n{occupied_ports_details}\nBu işlemleri sonlandırmayı denensin mi?", "en": "The following ports are in use:\n{occupied_ports_details}\nAttempt to terminate these processes?"},
+    "all_ports_cleared_success": {"zh": "Tüm seçilen portlar başarıyla temizlendi.", "en": "All selected ports have been cleared successfully."},
+    "some_ports_still_in_use": {"zh": "Temizleme girişiminden sonra bazı portlar hala kullanımda, lütfen manuel olarak işlem yapın. Başlatma iptal edildi.", "en": "Some ports are still in use after cleanup attempt. Please handle manually. Launch aborted."},
+    "port_check_user_declined_cleanup": {"zh": "Kullanıcı meşgul portları temizlemeyi seçmedi. Başlatma iptal edildi.", "en": "User chose not to clean up occupied ports. Launch aborted."},
+    "reset_button": {"zh": "Varsayılanlara Sıfırla", "en": "Reset to Defaults"},
+    "confirm_reset_title": {"zh": "Sıfırlamayı Onayla", "en": "Confirm Reset"},
+    "confirm_reset_message": {"zh": "Tüm ayarları varsayılan değerlere sıfırlamak istediğinizden emin misiniz?", "en": "Are you sure you want to reset all settings to default values?"},
+    "reset_success": {"zh": "Varsayılan ayarlara başarıyla sıfırlandı", "en": "Reset to default settings successfully"},
+    "proxy_config_last_used": {"zh": "Son proxy kullanılıyor: {proxy}", "en": "Using last proxy: {proxy}"},
+    "proxy_config_other": {"zh": "Farklı bir proxy adresi kullan", "en": "Use a different proxy address"},
+    "service_closing_guide": {"zh": "Hizmeti Kapatma Rehberi", "en": "Service Closing Guide"},
+    "service_closing_guide_btn": {"zh": "Hizmeti Nasıl Kapatırım?", "en": "How to Close Service?"},
     "service_closing_guide_message": {"zh": service_closing_guide_message_zh, "en": service_closing_guide_message_en},
-    "enable_proxy_label": {"zh": "启用浏览器代理", "en": "Enable Browser Proxy"},
-    "proxy_address_label": {"zh": "代理地址:", "en": "Proxy Address:"},
-    "current_auth_file_display_label": {"zh": "当前认证: ", "en": "Current Auth: "},
-    "current_auth_file_none": {"zh": "无", "en": "None"},
+    "enable_proxy_label": {"zh": "Tarayıcı Proxy'sini Etkinleştir", "en": "Enable Browser Proxy"},
+    "proxy_address_label": {"zh": "Proxy Adresi:", "en": "Proxy Address:"},
+    "current_auth_file_display_label": {"zh": "Mevcut Kimlik Doğrulama: ", "en": "Current Auth: "},
+    "current_auth_file_none": {"zh": "Yok", "en": "None"},
     "current_auth_file_selected_format": {"zh": "{file}", "en": "{file}"},
-    "test_proxy_btn": {"zh": "测试", "en": "Test"},
-    "proxy_section_label": {"zh": "代理配置", "en": "Proxy Configuration"},
-    "proxy_test_url_default": "http://httpbin.org/get", # 默认测试URL
-    "proxy_test_url_backup": "http://www.google.com", # 备用测试URL
-    "proxy_not_enabled_warn": {"zh": "代理未启用或地址为空，请先配置。", "en": "Proxy not enabled or address is empty. Please configure first."},
-    "proxy_test_success": {"zh": "代理连接成功 ({url})", "en": "Proxy connection successful ({url})"},
-    "proxy_test_failure": {"zh": "代理连接失败 ({url}):\n{error}", "en": "Proxy connection failed ({url}):\n{error}"},
-    "proxy_testing_status": {"zh": "正在测试代理 {proxy_addr}...", "en": "Testing proxy {proxy_addr}..."},
-    "proxy_test_success_status": {"zh": "代理测试成功 ({url})", "en": "Proxy test successful ({url})"},
-    "proxy_test_failure_status": {"zh": "代理测试失败: {error}", "en": "Proxy test failed: {error}"},
-    "proxy_test_retrying": {"zh": "代理测试失败，正在重试 ({attempt}/{max_attempts})...", "en": "Proxy test failed, retrying ({attempt}/{max_attempts})..."},
-    "proxy_test_backup_url": {"zh": "主测试URL失败，尝试备用URL...", "en": "Primary test URL failed, trying backup URL..."},
-    "proxy_test_all_failed": {"zh": "所有代理测试尝试均失败", "en": "All proxy test attempts failed"},
-    "querying_ports_status": {"zh": "正在查询端口: {ports_desc}...", "en": "Querying ports: {ports_desc}..."},
+    "test_proxy_btn": {"zh": "Test", "en": "Test"},
+    "proxy_section_label": {"zh": "Proxy Yapılandırması", "en": "Proxy Configuration"},
+    "proxy_test_url_default": "http://httpbin.org/get", # Varsayılan test URL'si
+    "proxy_test_url_backup": "http://www.google.com", # Yedek test URL'si
+    "proxy_not_enabled_warn": {"zh": "Proxy etkin değil veya adres boş, lütfen önce yapılandırın.", "en": "Proxy not enabled or address is empty. Please configure first."},
+    "proxy_test_success": {"zh": "Proxy bağlantısı başarılı ({url})", "en": "Proxy connection successful ({url})"},
+    "proxy_test_failure": {"zh": "Proxy bağlantısı başarısız ({url}):\n{error}", "en": "Proxy connection failed ({url}):\n{error}"},
+    "proxy_testing_status": {"zh": "Proxy {proxy_addr} test ediliyor...", "en": "Testing proxy {proxy_addr}..."},
+    "proxy_test_success_status": {"zh": "Proxy testi başarılı ({url})", "en": "Proxy test successful ({url})"},
+    "proxy_test_failure_status": {"zh": "Proxy testi başarısız: {error}", "en": "Proxy test failed: {error}"},
+    "proxy_test_retrying": {"zh": "Proxy testi başarısız, yeniden deneniyor ({attempt}/{max_attempts})...", "en": "Proxy test failed, retrying ({attempt}/{max_attempts})..."},
+    "proxy_test_backup_url": {"zh": "Birincil test URL'si başarısız oldu, yedek URL deneniyor...", "en": "Primary test URL failed, trying backup URL..."},
+    "proxy_test_all_failed": {"zh": "Tüm proxy testi denemeleri başarısız oldu", "en": "All proxy test attempts failed"},
+    "querying_ports_status": {"zh": "Port sorgulanıyor: {ports_desc}...", "en": "Querying ports: {ports_desc}..."},
     "port_query_result_format": {"zh": "[{port_type} - {port_num}] {pid_info}", "en": "[{port_type} - {port_num}] {pid_info}"},
-    "port_not_in_use_format": {"zh": "[{port_type} - {port_num}] 未被占用", "en": "[{port_type} - {port_num}] Not in use"},
-    "pids_on_multiple_ports_label": {"zh": "多端口占用情况:", "en": "Multi-Port Usage:"},
-    "launch_llm_service_btn": {"zh": "启动本地LLM模拟服务", "en": "Launch Local LLM Mock Service"},
-    "stop_llm_service_btn": {"zh": "停止本地LLM模拟服务", "en": "Stop Local LLM Mock Service"},
-    "llm_service_name_key": {"zh": "本地LLM模拟服务", "en": "Local LLM Mock Service"},
-    "status_llm_starting": {"zh": "本地LLM模拟服务启动中 (PID: {pid})...", "en": "Local LLM Mock Service starting (PID: {pid})..."},
-    "status_llm_stopped": {"zh": "本地LLM模拟服务已停止。", "en": "Local LLM Mock Service stopped."},
-    "status_llm_stop_error": {"zh": "停止本地LLM模拟服务时出错。", "en": "Error stopping Local LLM Mock Service."},
-    "status_llm_already_running": {"zh": "本地LLM模拟服务已在运行 (PID: {pid})。", "en": "Local LLM Mock Service is already running (PID: {pid})."},
-    "status_llm_not_running": {"zh": "本地LLM模拟服务未在运行。", "en": "Local LLM Mock Service is not running."},
-    "status_llm_backend_check": {"zh": "正在检查LLM后端服务 ...", "en": "Checking LLM backend service ..."},
-    "status_llm_backend_ok_starting": {"zh": "LLM后端服务 (localhost:{port}) 正常，正在启动模拟服务...", "en": "LLM backend service (localhost:{port}) OK, starting mock service..."},
-    "status_llm_backend_fail": {"zh": "LLM后端服务 (localhost:{port}) 未响应，无法启动模拟服务。", "en": "LLM backend service (localhost:{port}) not responding, cannot start mock service."},
-    "confirm_stop_llm_title": {"zh": "确认停止LLM服务", "en": "Confirm Stop LLM Service"},
-    "confirm_stop_llm_message": {"zh": "确定要停止本地LLM模拟服务吗?", "en": "Are you sure you want to stop the Local LLM Mock Service?"},
-    "create_new_auth_filename_prompt": {"zh": "请输入要保存认证信息的文件名:", "en": "Please enter the filename to save authentication credentials:"},
-    "invalid_auth_filename_warn": {"zh": "无效的文件名。请只使用字母、数字、- 和 _。", "en": "Invalid filename. Please use only letters, numbers, -, and _."},
-    "confirm_save_settings_title": {"zh": "保存设置", "en": "Save Settings"},
-    "confirm_save_settings_message": {"zh": "是否要保存当前设置？", "en": "Do you want to save the current settings?"},
-    "settings_saved_success": {"zh": "设置已成功保存。", "en": "Settings saved successfully."},
-    "save_now_btn": {"zh": "立即保存", "en": "Save Now"}
+    "port_not_in_use_format": {"zh": "[{port_type} - {port_num}] Kullanımda değil", "en": "[{port_type} - {port_num}] Not in use"},
+    "pids_on_multiple_ports_label": {"zh": "Çoklu Port Kullanımı:", "en": "Multi-Port Usage:"},
+    "launch_llm_service_btn": {"zh": "Yerel LLM Sahte Hizmetini Başlat", "en": "Launch Local LLM Mock Service"},
+    "stop_llm_service_btn": {"zh": "Yerel LLM Sahte Hizmetini Durdur", "en": "Stop Local LLM Mock Service"},
+    "llm_service_name_key": {"zh": "Yerel LLM Sahte Hizmeti", "en": "Local LLM Mock Service"},
+    "status_llm_starting": {"zh": "Yerel LLM Sahte Hizmeti başlatılıyor (PID: {pid})...", "en": "Local LLM Mock Service starting (PID: {pid})..."},
+    "status_llm_stopped": {"zh": "Yerel LLM Sahte Hizmeti durduruldu.", "en": "Local LLM Mock Service stopped."},
+    "status_llm_stop_error": {"zh": "Yerel LLM Sahte Hizmeti durdurulurken hata oluştu.", "en": "Error stopping Local LLM Mock Service."},
+    "status_llm_already_running": {"zh": "Yerel LLM Sahte Hizmeti zaten çalışıyor (PID: {pid}).", "en": "Local LLM Mock Service is already running (PID: {pid})."},
+    "status_llm_not_running": {"zh": "Yerel LLM Sahte Hizmeti çalışmıyor.", "en": "Local LLM Mock Service is not running."},
+    "status_llm_backend_check": {"zh": "LLM arka uç hizmeti kontrol ediliyor ...", "en": "Checking LLM backend service ..."},
+    "status_llm_backend_ok_starting": {"zh": "LLM arka uç hizmeti (localhost:{port}) tamam, sahte hizmet başlatılıyor...", "en": "LLM backend service (localhost:{port}) OK, starting mock service..."},
+    "status_llm_backend_fail": {"zh": "LLM arka uç hizmeti (localhost:{port}) yanıt vermiyor, sahte hizmet başlatılamıyor.", "en": "LLM backend service (localhost:{port}) not responding, cannot start mock service."},
+    "confirm_stop_llm_title": {"zh": "LLM Hizmetini Durdurmayı Onayla", "en": "Confirm Stop LLM Service"},
+    "confirm_stop_llm_message": {"zh": "Yerel LLM Sahte Hizmetini durdurmak istediğinizden emin misiniz?", "en": "Are you sure you want to stop the Local LLM Mock Service?"},
+    "create_new_auth_filename_prompt": {"zh": "Kimlik doğrulama bilgilerini kaydetmek için dosya adı girin:", "en": "Please enter the filename to save authentication credentials:"},
+    "invalid_auth_filename_warn": {"zh": "Geçersiz dosya adı. Lütfen sadece harf, rakam, - ve _ kullanın.", "en": "Invalid filename. Please use only letters, numbers, -, and _."},
+    "confirm_save_settings_title": {"zh": "Ayarları Kaydet", "en": "Save Settings"},
+    "confirm_save_settings_message": {"zh": "Mevcut ayarları kaydetmek istiyor musunuz?", "en": "Do you want to save the current settings?"},
+    "settings_saved_success": {"zh": "Ayarlar başarıyla kaydedildi.", "en": "Settings saved successfully."},
+    "save_now_btn": {"zh": "Şimdi Kaydet", "en": "Save Now"}
 }
 
-# 删除重复的定义
+# Yinelenen tanımları kaldır
 current_language = 'zh'
 root_widget: Optional[tk.Tk] = None
 process_status_text_var: Optional[tk.StringVar] = None
-port_entry_var: Optional[tk.StringVar] = None # 将用于 FastAPI 端口
+port_entry_var: Optional[tk.StringVar] = None # FastAPI portu için kullanılacak
 camoufox_debug_port_var: Optional[tk.StringVar] = None
 pid_listbox_widget: Optional[tk.Listbox] = None
 custom_pid_entry_var: Optional[tk.StringVar] = None
 widgets_to_translate: List[Dict[str, Any]] = []
-proxy_address_var: Optional[tk.StringVar] = None  # 添加变量存储代理地址
-proxy_enabled_var: Optional[tk.BooleanVar] = None  # 添加变量标记代理是否启用
-active_auth_file_display_var: Optional[tk.StringVar] = None # 用于显示当前认证文件
-g_config: Dict[str, Any] = {} # 新增：用于存储加载的配置
+proxy_address_var: Optional[tk.StringVar] = None  # Proxy adresini saklamak için değişken ekle
+proxy_enabled_var: Optional[tk.BooleanVar] = None  # Proxy'nin etkin olup olmadığını takip etmek için değişken
+active_auth_file_display_var: Optional[tk.StringVar] = None # Aktif kimlik doğrulama dosyasını göstermek için kullanılır
+g_config: Dict[str, Any] = {} # Yüklenen yapılandırmayı saklamak için global depolama
 
 LLM_PY_FILENAME = "llm.py"
 llm_service_process_info: Dict[str, Any] = {
@@ -319,10 +319,10 @@ llm_service_process_info: Dict[str, Any] = {
     "monitor_thread": None,
     "stdout_thread": None,
     "stderr_thread": None,
-    "service_name_key": "llm_service_name_key" # Corresponds to a LANG_TEXTS key
+    "service_name_key": "llm_service_name_key" # LANG_TEXTS anahtarına karşılık gelir
 }
 
-# 将所有辅助函数定义移到 build_gui 之前
+# Tüm yardımcı fonksiyon tanımlarını build_gui'den önce taşıyın
 
 def get_text(key: str, **kwargs) -> str:
     try:
@@ -537,7 +537,7 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
     occupied_ports_details_for_msg = []
     for info in occupied_ports_info:
         port_display_name = get_text(f"port_name_{info['name_key']}") if info['name_key'] else ""
-        occupied_ports_details_for_msg.append(f"  - {port_display_name} (端口 {info['port']}): 被 PID(s) {info['pids_str']} 占用")
+        occupied_ports_details_for_msg.append(f"  - {port_display_name} (Port {info['port']}): PID {info['pids_str']} tarafından kullanılıyor")
 
     details_str = "\n".join(occupied_ports_details_for_msg)
 
@@ -604,7 +604,7 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
         return False
 
 def _update_active_auth_display():
-    """更新GUI中显示的当前活动认证文件"""
+    """GUI'de gösterilen etkin kimlik doğrulama dosyası bilgisini günceller"""
     if not active_auth_file_display_var or not root_widget:
         return
 
@@ -614,7 +614,7 @@ def _update_active_auth_display():
 
     active_files = [f for f in os.listdir(ACTIVE_AUTH_DIR) if f.lower().endswith('.json')]
     if active_files:
-        # 通常 active 目录只有一个文件，但以防万一，取第一个
+        # Genellikle active dizininde yalnızca bir dosya olur; yine de ilkini al
         active_file_name = sorted(active_files)[0]
         active_auth_file_display_var.set(get_text("current_auth_file_selected_format", file=active_file_name))
     else:
@@ -634,11 +634,11 @@ def manage_auth_files_gui():
         messagebox.showinfo(get_text("auth_disabled_title"), get_text("auth_disabled_message"), parent=root_widget)
         return
 
-    if not os.path.exists(AUTH_PROFILES_DIR): # 检查根目录
+    if not os.path.exists(AUTH_PROFILES_DIR): # Kök dizini kontrol et
         messagebox.showerror(get_text("error_title"), get_text("auth_dirs_missing"), parent=root_widget)
         return
 
-    # 确保 active 和 saved 目录存在，如果不存在则创建
+    # active ve saved dizinlerinin var olduğundan emin ol, yoksa oluştur
     os.makedirs(ACTIVE_AUTH_DIR, exist_ok=True)
     os.makedirs(SAVED_AUTH_DIR, exist_ok=True)
 
@@ -647,7 +647,7 @@ def manage_auth_files_gui():
     auth_window.geometry("550x300")
     auth_window.resizable(True, True)
 
-    # 扫描文件
+    # Dosyaları tara
     all_auth_files = set()
     for dir_path in [AUTH_PROFILES_DIR, ACTIVE_AUTH_DIR, SAVED_AUTH_DIR]:
         if os.path.exists(dir_path):
@@ -689,7 +689,7 @@ def manage_auth_files_gui():
                 break
 
         if not source_path:
-            messagebox.showerror(get_text("error_title"), f"源文件 {selected_file_name} 未找到!", parent=auth_window)
+            messagebox.showerror(get_text("error_title"), f"Kaynak dosya {selected_file_name} bulunamadı!", parent=auth_window)
             return
 
         try:
@@ -733,61 +733,61 @@ def manage_auth_files_gui():
     ttk.Button(buttons_frame, text=get_text("cancel_btn"), command=auth_window.destroy).pack(side=tk.RIGHT, padx=5)
 
 def get_active_auth_json_path_for_launch() -> Optional[str]:
-    """获取用于启动命令的 --active-auth-json 参数值"""
+    """Başlatma komutu için kullanılacak --active-auth-json parametresinin değerini döndürür"""
     active_files = [f for f in os.listdir(ACTIVE_AUTH_DIR) if f.lower().endswith('.json') and os.path.isfile(os.path.join(ACTIVE_AUTH_DIR, f))]
     if active_files:
-        # 如果 active 目录有文件，总是使用它（按名称排序的第一个）
+        # Active dizininde dosya varsa alfabetik olarak ilkini kullan
         return os.path.join(ACTIVE_AUTH_DIR, sorted(active_files)[0])
     return None
 
 def build_launch_command(mode, fastapi_port, camoufox_debug_port, stream_port_enabled, stream_port, helper_enabled, helper_endpoint, auto_save_auth: bool = False, save_auth_as: Optional[str] = None):
     cmd = [PYTHON_EXECUTABLE, LAUNCH_CAMOUFOX_PY, f"--{mode}", "--server-port", str(fastapi_port), "--camoufox-debug-port", str(camoufox_debug_port)]
 
-    # 当创建新认证时，不应加载任何现有的认证文件
+    # Yeni kimlik doğrulaması oluşturulurken mevcut dosyalar yüklenmemeli
     if not auto_save_auth:
         active_auth_path = get_active_auth_json_path_for_launch()
         if active_auth_path:
             cmd.extend(["--active-auth-json", active_auth_path])
-            logger.info(f"将使用认证文件: {active_auth_path}")
+            logger.info(f"Kullanılacak kimlik doğrulama dosyası: {active_auth_path}")
         else:
-            logger.info("未找到活动的认证文件，不传递 --active-auth-json 参数。")
+            logger.info("Etkin kimlik doğrulama dosyası bulunamadı; --active-auth-json parametresi gönderilmeyecek.")
 
     if auto_save_auth:
         cmd.append("--auto-save-auth")
-        logger.info("将使用 --auto-save-auth 标志，以便在登录后自动保存认证文件。")
+        logger.info("Girişten sonra kimlik doğrulama dosyasını otomatik kaydetmek için --auto-save-auth kullanılacak.")
 
     if save_auth_as:
         cmd.extend(["--save-auth-as", save_auth_as])
-        logger.info(f"新认证文件将保存为: {save_auth_as}.json")
+        logger.info(f"Yeni kimlik doğrulama dosyası {save_auth_as}.json olarak kaydedilecek.")
 
     if stream_port_enabled:
         cmd.extend(["--stream-port", str(stream_port)])
     else:
-        cmd.extend(["--stream-port", "0"]) # 显式传递0表示禁用
+        cmd.extend(["--stream-port", "0"]) # Açıkça 0 göndererek devre dışı bırak
 
     if helper_enabled and helper_endpoint:
         cmd.extend(["--helper", helper_endpoint])
     else:
-        cmd.extend(["--helper", ""]) # 显式传递空字符串表示禁用
+        cmd.extend(["--helper", ""]) # Boş dize göndererek devre dışı bırak
 
-    # 修复：添加统一代理配置参数传递
-    # 使用 --internal-camoufox-proxy 参数确保最高优先级，而不是仅依赖环境变量
+    # Düzeltme: Proxy yapılandırmasını tutarlı şekilde ilet
+    # --internal-camoufox-proxy parametresi ortam değişkenlerinden daha yüksek önceliklidir
     if proxy_enabled_var.get():
         proxy_addr = proxy_address_var.get().strip()
         if proxy_addr:
             cmd.extend(["--internal-camoufox-proxy", proxy_addr])
-            logger.info(f"将使用GUI配置的代理: {proxy_addr}")
+            logger.info(f"GUI'de yapılandırılan proxy kullanılacak: {proxy_addr}")
         else:
             cmd.extend(["--internal-camoufox-proxy", ""])
-            logger.info("GUI代理已启用但地址为空，明确禁用代理")
+            logger.info("GUI üzerinden proxy etkin, ancak adres boş; bu nedenle açıkça devre dışı bırakılıyor")
     else:
         cmd.extend(["--internal-camoufox-proxy", ""])
-        logger.info("GUI代理未启用，明确禁用代理")
+        logger.info("GUI üzerinden proxy etkin değil; açıkça devre dışı bırakılıyor")
 
     return cmd
 
-# --- GUI构建与主逻辑区段的函数定义 ---
-# (这些函数调用上面定义的辅助函数，所以它们的定义顺序很重要)
+# --- GUI'yu oluşturma ve ana mantık bölümüne ait fonksiyon tanımları ---
+# (Bu fonksiyonlar yukarıda tanımlanan yardımcıları çağırdığından, tanım sırası önemlidir)
 
 def enqueue_stream_output(stream, stream_name_prefix):
     try:
@@ -870,10 +870,10 @@ def get_camoufox_debug_port_from_gui() -> int:
         camoufox_debug_port_var.set(str(DEFAULT_CAMOUFOX_PORT_GUI))
         return DEFAULT_CAMOUFOX_PORT_GUI
 
-# 配置文件路径
+# Yapılandırma dosyası yolu
 CONFIG_FILE_PATH = os.path.join(SCRIPT_DIR, "gui_config.json")
 
-# 默认配置 - 从环境变量读取，如果没有则使用硬编码默认值
+# Varsayılan yapılandırma - ortam değişkeni varsa onu, yoksa sabit değerleri kullan
 DEFAULT_CONFIG = {
     "fastapi_port": DEFAULT_FASTAPI_PORT,
     "camoufox_debug_port": DEFAULT_CAMOUFOX_PORT_GUI,
@@ -885,20 +885,20 @@ DEFAULT_CONFIG = {
     "proxy_enabled": False
 }
 
-# 加载配置
+# Yapılandırmayı yükle
 def load_config():
     if os.path.exists(CONFIG_FILE_PATH):
         try:
             with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-                logger.info(f"成功加载配置文件: {CONFIG_FILE_PATH}")
+                logger.info(f"Yapılandırma dosyası yüklendi: {CONFIG_FILE_PATH}")
                 return config
         except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
-    logger.info(f"使用默认配置")
+            logger.error(f"Yapılandırma dosyası yüklenemedi: {e}")
+    logger.info("Varsayılan yapılandırma kullanılacak")
     return DEFAULT_CONFIG.copy()
 
-# 保存配置
+# Yapılandırmayı kaydet
 def save_config():
     config = {
         "fastapi_port": port_entry_var.get(),
@@ -913,9 +913,9 @@ def save_config():
     try:
         with open(CONFIG_FILE_PATH, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
-            logger.info(f"成功保存配置到: {CONFIG_FILE_PATH}")
+            logger.info(f"Yapılandırma kaydedildi: {CONFIG_FILE_PATH}")
     except Exception as e:
-        logger.error(f"保存配置失败: {e}")
+        logger.error(f"Yapılandırma kaydedilemedi: {e}")
 
 def custom_yes_no_dialog(title, message, yes_text="Yes", no_text="No"):
     """Creates a custom dialog with specified button texts."""
@@ -960,13 +960,13 @@ def custom_yes_no_dialog(title, message, yes_text="Yes", no_text="No"):
     return result[0]
 
 def have_settings_changed() -> bool:
-    """检查GUI设置是否已更改"""
+    """GUI ayarlarında değişiklik olup olmadığını kontrol eder"""
     global g_config
     if not g_config:
         return False
 
     try:
-        # 比较时将所有值转换为字符串或布尔值以避免类型问题
+        # Karşılaştırmada tür sorunlarını önlemek için tüm değerleri dizeye veya boole değerine dönüştürün
         if str(g_config.get("fastapi_port", DEFAULT_FASTAPI_PORT)) != port_entry_var.get():
             return True
         if str(g_config.get("camoufox_debug_port", DEFAULT_CAMOUFOX_PORT_GUI)) != camoufox_debug_port_var.get():
@@ -984,13 +984,13 @@ def have_settings_changed() -> bool:
         if bool(g_config.get("proxy_enabled", False)) != proxy_enabled_var.get():
             return True
     except Exception as e:
-        logger.warning(f"检查设置更改时出错: {e}")
-        return True # 出错时，最好假定已更改以提示保存
+        logger.warning(f"Ayar değişiklikleri kontrol edilirken hata oluştu: {e}")
+        return True # Hata durumunda kaydetmek adına değişiklik var kabul et
 
     return False
 
 def prompt_to_save_data():
-    """显示一个弹出窗口，询问用户是否要保存当前配置。"""
+    """Geçerli yapılandırmayı kaydetmek isteyip istemediğinizi soran bir iletişim kutusu gösterir"""
     global g_config
     if custom_yes_no_dialog(
         get_text("confirm_save_settings_title"),
@@ -999,14 +999,14 @@ def prompt_to_save_data():
         no_text=get_text("cancel_btn")
     ):
         save_config()
-        g_config = load_config() # 保存后重新加载配置
+        g_config = load_config() # Kaydettikten sonra yapılandırmayı yeniden yükle
         messagebox.showinfo(
             get_text("info_title"),
             get_text("settings_saved_success"),
             parent=root_widget
         )
 
-# 重置为默认配置，包含代理设置
+# Proxy ayarları dahil olmak üzere varsayılan değerlere sıfırla
 def reset_to_defaults():
     if messagebox.askyesno(get_text("confirm_reset_title"), get_text("confirm_reset_message"), parent=root_widget):
         port_entry_var.set(str(DEFAULT_FASTAPI_PORT))
@@ -1021,15 +1021,15 @@ def reset_to_defaults():
 
 def _configure_proxy_env_vars() -> Dict[str, str]:
     """
-    配置代理环境变量（已弃用，现在主要通过 --internal-camoufox-proxy 参数传递）
-    保留此函数以维持向后兼容性，但现在主要用于状态显示
+    Proxy ortam değişkenlerini yapılandırır (artık kullanılmıyor, proxy aktarımı öncelikle --internal-camoufox-proxy ile yapılır).
+    Geriye dönük uyumluluğu korumak ve durum mesajı göstermek için fonksiyon tutulmuştur.
     """
     proxy_env = {}
     if proxy_enabled_var.get():
         proxy_addr = proxy_address_var.get().strip()
         if proxy_addr:
-            # 注意：现在主要通过 --internal-camoufox-proxy 参数传递代理配置
-            # 环境变量作为备用方案，但优先级较低
+            # Not: Proxy yapılandırması artık ağırlıklı olarak --internal-camoufox-proxy parametresi ile iletiliyor
+            # Ortam değişkenleri yedek çözüm olarak kalıyor ve önceliği düşük
             update_status_bar("proxy_configured_status", proxy_addr=proxy_addr)
         else:
             update_status_bar("proxy_skip_status")
@@ -1087,11 +1087,11 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
 
         args_for_script_quoted = [shlex.quote(arg) for arg in cmd[2:]]
 
-        # 构建环境变量设置字符串
+        # Ortam değişkeni ayarları dizesini oluştur
         env_prefix_parts = []
-        if env_vars: # env_vars 应该是从 _configure_proxy_env_vars() 来的 proxy_env
+        if env_vars: # env_vars, _configure_proxy_env_vars() fonksiyonundan gelen proxy_env olmalı
             for key, value in env_vars.items():
-                if value is not None: # 确保值存在且不为空字符串
+                if value is not None: # Değerin mevcut ve boş dize olmadığını doğrulayın
                     env_prefix_parts.append(f"{shlex.quote(key)}={shlex.quote(str(value))}")
         env_prefix_str = " ".join(env_prefix_parts)
 
@@ -1110,13 +1110,13 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
         shell_command_parts.extend(args_for_script_quoted)
         shell_command_str = " ".join(shell_command_parts)
 
-        # Now, escape this shell_command_str for embedding within an AppleScript double-quoted string.
-        # In AppleScript strings, backslash `\\` and double quote `\"` are special and need to be escaped.
+        # Şimdi, AppleScript çift tırnaklı dizesine gömme için shell_command_str'yi kaçırmalıyız.
+        # AppleScript dizelerinde ters eğik çizgi `\\` ve çift tırnak `\"` özel karakterlerdir ve kaçırılmalıdır.
         applescript_arg_escaped = shell_command_str.replace('\\\\', '\\\\\\\\').replace('\"', '\\\\\"')
 
         # Construct the AppleScript command
-        # 修复：使用简化的AppleScript命令避免AppleEvent处理程序失败
-        # 直接创建新窗口并执行命令，避免复杂的条件判断
+        # Düzeltme: AppleEvent işleyicisinin başarısız olmasını önlemek için basitleştirilmiş AppleScript komutu kullanın
+        # Karmaşık koşulları önlemek için doğrudan yeni bir pencere oluşturun ve komutu yürütün
         applescript_command = f'''
         tell application "Terminal"
             do script "{applescript_arg_escaped}"
@@ -1144,16 +1144,16 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
             else: # Generic x-terminal-emulator
                  launch_cmd_for_terminal = [terminal_emulator, "-e", f"bash -c '{full_command_to_run}; exec bash'"]
         else:
-            messagebox.showerror(get_text("error_title"), "未找到兼容的Linux终端模拟器 (如 x-terminal-emulator, gnome-terminal, xterm)。无法在新终端中启动服务。")
+            messagebox.showerror(get_text("error_title"), "Linux için uyumlu bir terminal öykünücüsü bulunamadı (ör. x-terminal-emulator, gnome-terminal, xterm). Hizmet yeni bir terminalde başlatılamıyor.")
             update_status_bar("status_error_starting", service_name=service_name)
             return
-    else: # Fallback for other OS or if specific terminal launch fails
-        messagebox.showerror(get_text("error_title"), f"不支持为操作系统 {system} 在新终端中启动。")
+    else: # Diğer işletim sistemleri veya belirli terminal başlatma başarısız olursa yedek
+        messagebox.showerror(get_text("error_title"), f"{system} işletim sistemi için yeni terminalde başlatma desteklenmiyor.")
         update_status_bar("status_error_starting", service_name=service_name)
         return
 
-    if not launch_cmd_for_terminal: # Should not happen if logic above is correct
-        messagebox.showerror(get_text("error_title"), f"无法为 {system} 构建终端启动命令。")
+    if not launch_cmd_for_terminal: # Yukarıdaki mantık doğruysa bu olmamalı
+        messagebox.showerror(get_text("error_title"), f"{system} için terminal başlatma komutu oluşturulamadı.")
         update_status_bar("status_error_starting", service_name=service_name)
         return
 
@@ -1221,7 +1221,7 @@ def start_headed_interactive_gui():
                 if pu.hostname in ("localhost", "127.0.0.1") and pu.port:
                     ports_to_check.append((pu.port, "helper_service"))
             except Exception as e:
-                print(f"解析Helper URL失败(有头模式): {e}")
+                print(f"Helper URL'si ayrıştırılamadı (Başlıklı mod): {e}")
         if not check_all_required_ports(ports_to_check): return
 
     proxy_env = _configure_proxy_env_vars()
@@ -1284,12 +1284,12 @@ def create_new_auth_file_gui(parent_window):
             parent=parent_window
         ):
             logger.info("User confirmed. Proceeding to launch.")
-            # NEW: Set flag so that the browser process will not wait for Enter.
+            # YENİ: Tarayıcı işleminin Enter tuşu için beklememesi için bayrağı ayarlayın.
             os.environ["SUPPRESS_LOGIN_WAIT"] = "1"
             parent_window.destroy()
             launch_params = _get_launch_parameters()
             if not launch_params:
-                logger.error("无法获取启动参数。")
+                logger.error("Başlatma parametreleri alınamadı.")
                 return
             if port_auto_check_var.get():
                 if not check_all_required_ports([(launch_params["camoufox_debug_port"], "camoufox_debug")]):
@@ -1332,7 +1332,7 @@ def start_headless_gui():
                 if pu.hostname in ("localhost", "127.0.0.1") and pu.port:
                     ports_to_check.append((pu.port, "helper_service"))
             except Exception as e:
-                print(f"解析Helper URL失败(无头模式): {e}")
+                print(f"Helper URL'si ayrıştırılamadı (Başlıksız mod): {e}")
         if not check_all_required_ports(ports_to_check): return
 
     proxy_env = _configure_proxy_env_vars()
@@ -1351,7 +1351,7 @@ def start_headless_gui():
 @debounce_button("start_virtual_display", 3.0)
 def start_virtual_display_gui():
     if platform.system() != "Linux":
-        messagebox.showwarning(get_text("warning_title"), "虚拟显示模式仅在Linux上受支持。")
+        messagebox.showwarning(get_text("warning_title"), "Sanal ekran modu sadece Linux'ta desteklenir.")
         return
 
     launch_params = _get_launch_parameters()
@@ -1370,7 +1370,7 @@ def start_virtual_display_gui():
                 if pu.hostname in ("localhost", "127.0.0.1") and pu.port:
                     ports_to_check.append((pu.port, "helper_service"))
             except Exception as e:
-                print(f"解析Helper URL失败(虚拟显示模式): {e}")
+                print(f"Helper URL'si ayrıştırılamadı (Sanal ekran modu): {e}")
         if not check_all_required_ports(ports_to_check): return
 
     proxy_env = _configure_proxy_env_vars()
@@ -1385,19 +1385,19 @@ def start_virtual_display_gui():
     )
     update_status_bar("status_virtual_display_launch")
     _launch_process_gui(cmd, "service_name_virtual_display", env_vars=proxy_env)
-
-# --- LLM Mock Service Management ---
+# --- LLM Sahte Hizmet Yönetimi ---
 
 def is_llm_service_running() -> bool:
-    """检查本地LLM模拟服务是否正在运行"""
+    """Yerel LLM sahte hizmetinin çalışıp çalışmadığını kontrol eder"""
     return llm_service_process_info.get("popen") and \
            llm_service_process_info["popen"].poll() is None
 
+
 def monitor_llm_process_thread_target():
-    """监控LLM服务进程，捕获输出并更新状态"""
+    """LLM hizmet işlemini izler, çıktıyı yakalar ve durumu günceller"""
     popen = llm_service_process_info.get("popen")
     service_name_key = llm_service_process_info.get("service_name_key") # "llm_service_name_key"
-    output_area = managed_process_info.get("output_area") # Use the main output area
+    output_area = managed_process_info.get("output_area") # Ana çıktı alanını kullan
 
     if not popen or not service_name_key or not output_area:
         logger.error("LLM monitor thread: Popen, service_name_key, or output_area is None.")
@@ -1437,7 +1437,7 @@ def monitor_llm_process_thread_target():
         llm_service_process_info["stderr_thread"] = None
 
 def _actually_launch_llm_service():
-    """实际启动 llm.py 脚本"""
+    """llm.py betiğini gerçekten başlatır"""
     global llm_service_process_info
     service_name_key = "llm_service_name_key"
     service_name = get_text(service_name_key)
@@ -1501,10 +1501,10 @@ def _actually_launch_llm_service():
         llm_service_process_info["popen"] = None # Ensure it's cleared on failure
 
 def _check_llm_backend_and_launch_thread():
-    """检查LLM后端服务 (动态端口) 并在成功后启动llm.py"""
-    # Get the current FastAPI port from the GUI
-    # This needs to be called within this thread, right before the check,
-    # as port_entry_var might be accessed from a different thread if called outside.
+    """LLM arka uç hizmetini kontrol eder (dinamik port) ve başarılı olursa llm.py'yi başlatır"""
+    # GUI'den mevcut FastAPI portunu alın
+    # port_entry_var farklı bir iş parçacığından erişilebileceği için bu, kontrolden hemen önce
+    # bu iş parçacığı içinde çağrılması gerekir.
     # However, Tkinter GUI updates should ideally be done from the main thread.
     # For reading a StringVar, it's generally safe.
     current_fastapi_port = get_fastapi_port_from_gui()
@@ -1553,7 +1553,7 @@ def _check_llm_backend_and_launch_thread():
             )
 
 def start_llm_service_gui():
-    """GUI命令：启动本地LLM模拟服务"""
+    """GUI komutu: Yerel LLM sahte hizmetini başlatır"""
     if is_llm_service_running():
         pid = llm_service_process_info["popen"].pid
         update_status_bar("status_llm_already_running", pid=pid)
@@ -1563,11 +1563,11 @@ def start_llm_service_gui():
     # Run the check and actual launch in a new thread to keep GUI responsive
     # The check itself can take a few seconds if the port is unresponsive.
     threading.Thread(target=_check_llm_backend_and_launch_thread, daemon=True).start()
-
 def stop_llm_service_gui():
-    """GUI命令：停止本地LLM模拟服务"""
+    """GUI komutu: Yerel LLM sahte hizmetini durdurur"""
     service_name = get_text(llm_service_process_info.get("service_name_key", "llm_service_name_key"))
     popen = llm_service_process_info.get("popen")
+
 
     if not popen or popen.poll() is not None:
         update_status_bar("status_llm_not_running")
@@ -1581,14 +1581,14 @@ def stop_llm_service_gui():
         try:
             # Attempt graceful termination first
             if platform.system() == "Windows":
-                # On Windows, sending SIGINT to a Popen object created with CREATE_NO_WINDOW
-                # might not work as expected for Flask apps. taskkill is more reliable.
-                # We can try to send Ctrl+C to the console if it had one, but llm.py is simple.
-                # For Flask, direct popen.terminate() or popen.kill() is often used.
-                logger.info(f"Sending SIGTERM/terminate to {service_name} (PID: {popen.pid}) on Windows.")
-                popen.terminate() # Sends SIGTERM on Unix, TerminateProcess on Windows
+                # Windows'ta CREATE_NO_WINDOW ile oluşturulan bir Popen nesnesine SIGINT göndermek
+                # Flask uygulamaları için beklendiği gibi çalışmayabilir. taskkill daha güvenilirdir.
+                # Ctrl+C'yi konsola göndermeyi deneyebiliriz ama llm.py basittir.
+                # Flask için doğrudan popen.terminate() veya popen.kill() genellikle kullanılır.
+                logger.info(f"Windows'ta {service_name} (PID: {popen.pid}) işlemine SIGTERM/terminate gönderiliyor.")
+                popen.terminate() # Unix'te SIGTERM, Windows'ta TerminateProcess gönderir
             else: # Linux/macOS
-                logger.info(f"Sending SIGINT to {service_name} (PID: {popen.pid}) on {platform.system()}.")
+                logger.info(f"{platform.system()} üzerinde {service_name} (PID: {popen.pid}) işlemine SIGINT gönderiliyor.")
                 popen.send_signal(signal.SIGINT)
 
             # Wait for a short period for graceful shutdown
@@ -1657,7 +1657,7 @@ def query_port_and_display_pids_gui():
                 ports_to_query_info.append({"port": stream_p, "type_key": "port_name_stream_proxy", "type_name": get_text("port_name_stream_proxy")})
                 ports_desc_list.append(f"{get_text('port_name_stream_proxy')}:{stream_p}")
         except ValueError:
-            messagebox.showwarning(get_text("warning_title"), get_text("stream_port_out_of_range") + " (非数字)", parent=root_widget)
+            messagebox.showwarning(get_text("warning_title"), get_text("stream_port_out_of_range") + " (geçerli bir sayı değil)", parent=root_widget)
 
 
     update_status_bar("querying_ports_status", ports_desc=", ".join(ports_desc_list))
@@ -1696,7 +1696,7 @@ def query_port_and_display_pids_gui():
 
 def _perform_proxy_test_single(proxy_address: str, test_url: str, timeout: int = 15) -> Tuple[bool, str, int]:
     """
-    单次代理测试尝试
+    Tek seferlik proxy testi denemesi
     Returns (success_status, message_or_error_string, status_code).
     """
     proxies = {
@@ -1708,55 +1708,55 @@ def _perform_proxy_test_single(proxy_address: str, test_url: str, timeout: int =
         response = requests.get(test_url, proxies=proxies, timeout=timeout, allow_redirects=True)
         status_code = response.status_code
 
-        # 检查HTTP状态码
+        # HTTP durum kodunu kontrol et
         if 200 <= status_code < 300:
             logger.info(f"Proxy test to {test_url} via {proxy_address} successful. Status: {status_code}")
             return True, get_text("proxy_test_success", url=test_url), status_code
         elif status_code == 503:
-            # 503 Service Unavailable - 可能是临时性问题
+            # 503 Service Unavailable - muhtemelen geçici bir sorun
             logger.warning(f"Proxy test got 503 Service Unavailable from {test_url} via {proxy_address}")
             return False, f"HTTP {status_code}: Service Temporarily Unavailable", status_code
         elif 400 <= status_code < 500:
-            # 4xx 客户端错误
+            # 4xx istemci hataları
             logger.warning(f"Proxy test got client error {status_code} from {test_url} via {proxy_address}")
             return False, f"HTTP {status_code}: Client Error", status_code
         elif 500 <= status_code < 600:
-            # 5xx 服务器错误
+            # 5xx sunucu hataları
             logger.warning(f"Proxy test got server error {status_code} from {test_url} via {proxy_address}")
             return False, f"HTTP {status_code}: Server Error", status_code
         else:
             logger.warning(f"Proxy test got unexpected status {status_code} from {test_url} via {proxy_address}")
             return False, f"HTTP {status_code}: Unexpected Status", status_code
+except requests.exceptions.ProxyError as e:
+    logger.error(f"{proxy_address} üzerinden {test_url} bağlantısı sırasında ProxyError: {e}")
+    return False, f"Proxy Hatası: {e}", 0
+except requests.exceptions.ConnectTimeout as e:
+    logger.error(f"{proxy_address} üzerinden {test_url} bağlantısı sırasında ConnectTimeout: {e}")
+    return False, f"Bağlantı Zaman Aşımı: {e}", 0
+except requests.exceptions.ReadTimeout as e:
+    logger.error(f"{proxy_address} üzerinden {test_url} bağlantısı sırasında ReadTimeout: {e}")
+    return False, f"Okuma Zaman Aşımı: {e}", 0
+except requests.exceptions.SSLError as e:
+    logger.error(f"{proxy_address} üzerinden {test_url} bağlantısı sırasında SSLError: {e}")
+    return False, f"SSL Hatası: {e}", 0
+except requests.exceptions.RequestException as e:
+    logger.error(f"{proxy_address} üzerinden {test_url} bağlantısı sırasında RequestException: {e}")
+    return False, str(e), 0
+except Exception as e: # Beklenmeyen diğer hataları yakalayın
+    logger.error(f"{proxy_address} üzerinden {test_url} proxy testi sırasında beklenmeyen hata: {e}", exc_info=True)
+    return False, f"Beklenmeyen hata: {e}", 0
 
-    except requests.exceptions.ProxyError as e:
-        logger.error(f"ProxyError connecting to {test_url} via {proxy_address}: {e}")
-        return False, f"Proxy Error: {e}", 0
-    except requests.exceptions.ConnectTimeout as e:
-        logger.error(f"ConnectTimeout connecting to {test_url} via {proxy_address}: {e}")
-        return False, f"Connection Timeout: {e}", 0
-    except requests.exceptions.ReadTimeout as e:
-        logger.error(f"ReadTimeout from {test_url} via {proxy_address}: {e}")
-        return False, f"Read Timeout: {e}", 0
-    except requests.exceptions.SSLError as e:
-        logger.error(f"SSLError connecting to {test_url} via {proxy_address}: {e}")
-        return False, f"SSL Error: {e}", 0
-    except requests.exceptions.RequestException as e:
-        logger.error(f"RequestException connecting to {test_url} via {proxy_address}: {e}")
-        return False, str(e), 0
-    except Exception as e: # Catch any other unexpected errors
-        logger.error(f"Unexpected error during proxy test to {test_url} via {proxy_address}: {e}", exc_info=True)
-        return False, f"Unexpected error: {e}", 0
 
 def _perform_proxy_test(proxy_address: str, test_url: str) -> Tuple[bool, str]:
     """
-    增强的代理测试函数，包含重试机制和备用URL
+    Yenilenmiş proxy test fonksiyonu; yeniden deneme mekanizması ve yedek URL içerir
     Returns (success_status, message_or_error_string).
     """
     max_attempts = 3
     backup_url = LANG_TEXTS["proxy_test_url_backup"]
     urls_to_try = [test_url]
 
-    # 如果主URL不是备用URL，则添加备用URL
+    # Ana URL yedek URL ile aynı değilse listeye yedeği ekle
     if test_url != backup_url:
         urls_to_try.append(backup_url)
 
@@ -1764,42 +1764,42 @@ def _perform_proxy_test(proxy_address: str, test_url: str) -> Tuple[bool, str]:
         if url_index > 0:
             logger.info(f"Trying backup URL: {current_url}")
             update_status_bar("proxy_test_backup_url")
+for attempt in range(1, max_attempts + 1):
+    if attempt > 1:
+        logger.info(f"Proxy testi yeniden deneniyor (deneme {attempt}/{max_attempts})")
+        update_status_bar("proxy_test_retrying", attempt=attempt, max_attempts=max_attempts)
+        time.sleep(2)  # Yeniden denemeden önce 2 saniye bekle
 
-        for attempt in range(1, max_attempts + 1):
-            if attempt > 1:
-                logger.info(f"Retrying proxy test (attempt {attempt}/{max_attempts})")
-                update_status_bar("proxy_test_retrying", attempt=attempt, max_attempts=max_attempts)
-                time.sleep(2)  # 重试前等待2秒
+    success, error_msg, status_code = _perform_proxy_test_single(proxy_address, current_url)
 
-            success, error_msg, status_code = _perform_proxy_test_single(proxy_address, current_url)
 
             if success:
                 return True, get_text("proxy_test_success", url=current_url)
 
-            # 如果是503错误或超时，值得重试
+            # 503 hatası veya zaman aşımı varsa yeniden denemeye değer
             should_retry = (
                 status_code == 503 or
                 "timeout" in error_msg.lower() or
                 "temporarily unavailable" in error_msg.lower()
             )
+if not should_retry:
+    # Geçici olmayan hatalar için yeniden deneme yapmayın, doğrudan bir sonraki URL'yi deneyin
+    logger.info(f"{current_url} için yeniden deneme yapılamayan hata: {error_msg}")
+    break
 
-            if not should_retry:
-                # 对于非临时性错误，不重试，直接尝试下一个URL
-                logger.info(f"Non-retryable error for {current_url}: {error_msg}")
-                break
 
             if attempt == max_attempts:
                 logger.warning(f"All {max_attempts} attempts failed for {current_url}: {error_msg}")
 
-    # 所有URL和重试都失败了
+    # Tüm URL denemeleri ve yeniden girişimler başarısız oldu
     return False, get_text("proxy_test_all_failed")
 
 def _proxy_test_thread(proxy_addr: str, test_url: str):
-    """在后台线程中执行代理测试"""
+    """Proxy testini arka plandaki bir iş parçacığında yürütür"""
     try:
         success, message = _perform_proxy_test(proxy_addr, test_url)
 
-        # 在主线程中更新GUI
+        # GUI'yi ana iş parçacığında güncelle
         def update_gui():
             if success:
                 messagebox.showinfo(get_text("info_title"), message, parent=root_widget)
@@ -1817,7 +1817,7 @@ def _proxy_test_thread(proxy_addr: str, test_url: str):
         logger.error(f"Proxy test thread error: {e}", exc_info=True)
         def show_error():
             messagebox.showerror(get_text("error_title"),
-                               f"代理测试过程中发生错误: {e}",
+                               f"Proxy testi sırasında hata oluştu: {e}",
                                parent=root_widget)
             update_status_bar("proxy_test_failure_status", error=str(e))
 
@@ -1832,16 +1832,16 @@ def test_proxy_connectivity_gui():
     proxy_addr_to_test = proxy_address_var.get().strip()
     test_url = LANG_TEXTS["proxy_test_url_default"] # Use the default from LANG_TEXTS
 
-    # 显示测试开始状态
+    # Testin başladığını göster
     update_status_bar("proxy_testing_status", proxy_addr=proxy_addr_to_test)
-
-    # 在后台线程中执行测试，避免阻塞GUI
+    # GUI'yi engellememek için arka planda bir iş parçacığında testi çalıştır
     test_thread = threading.Thread(
         target=_proxy_test_thread,
         args=(proxy_addr_to_test, test_url),
         daemon=True
     )
     test_thread.start()
+
 
 def stop_selected_pid_from_list_gui():
     if not pid_listbox_widget: return
@@ -1853,7 +1853,7 @@ def stop_selected_pid_from_list_gui():
     pid_to_stop = -1
     process_name_to_stop = get_text("unknown_process_name_placeholder")
     try:
-        # Check for "no process" entry first, as it's a known non-PID format
+        # Bilinen PID olmayan format olduğu için ilk olarak "işlem yok" girdisini kontrol edin
         no_process_indicator_zh = get_text("port_not_in_use_format", port_type="_", port_num="_").split("] ")[-1].strip()
         no_process_indicator_en = LANG_TEXTS["port_not_in_use_format"]["en"].split("] ")[-1].strip()
         general_no_pids_msg_zh = get_text("no_pids_found")
@@ -1867,9 +1867,9 @@ def stop_selected_pid_from_list_gui():
             logger.info(f"Selected item is a 'no process' entry: {selected_text}")
             return # Silently return for "no process" entries
 
-        # Try to parse the format: "[Type - Port] PID - Name (Path)" or "PID - Name (Path)"
-        # This regex will match either the detailed format or the simple "PID - Name" format
-        # It's flexible enough to handle the optional leading "[...]" part
+        # Formatı ayrıştırmayı deneyin: "[Tür - Port] PID - Ad (Yol)" veya "PID - Ad (Yol)"
+        # Bu regex, ayrıntılı formatı veya basit "PID - Ad" formatını eşleştirecektir
+        # İsteğe bağlı "[...]" başlangıcını işlemek için yeterince esnektir
         match = re.match(r"^(?:\[[^\]]+\]\s*)?(\d+)\s*-\s*(.*)$", selected_text)
         if match:
             pid_to_stop = int(match.group(1))
@@ -1885,11 +1885,11 @@ def stop_selected_pid_from_list_gui():
         messagebox.showerror(get_text("error_title"), get_text("error_parsing_pid", selection=selected_text), parent=root_widget)
         return
 
-    # If pid_to_stop is still -1 at this point, it means an unhandled case or logic error in parsing.
-    # The returns above should prevent reaching here with pid_to_stop == -1 if it's an error or "no process".
+    # Bu noktada pid_to_stop hâlâ -1 ise, işlenmeyen bir durum veya ayrıştırmada mantık hatası olduğu anlamına gelir.
+    # Yukarıdaki dönüşler, hata veya "işlem yok" durumu varsa pid_to_stop == -1 olacak şekilde buraya ulaşmasını engellemelidir.
     if pid_to_stop == -1:
-        # This path implies a non-parsable string that wasn't identified as a "no process" message and didn't raise ValueError.
-        logger.warning(f"PID parsing resulted in -1 for non-'no process' entry: {selected_text}. This indicates an unexpected format or logic gap.")
+        # Bu yol, "işlem yok" mesajı olarak tanımlanmayan ve ValueError oluşturmamış ayrıştırılamayan bir dizeyi ima eder.
+        logger.warning(f"PID ayrıştırması, 'işlem yok' olmayan giriş için -1 sonucunu verdi: {selected_text}. Bu beklenmeyen bir format veya mantık boşluğunu gösterir.")
         messagebox.showerror(get_text("error_title"), get_text("error_parsing_pid", selection=selected_text), parent=root_widget)
         return
     if messagebox.askyesno(get_text("confirm_stop_pid_title"), get_text("confirm_stop_pid_message", pid=pid_to_stop, name=process_name_to_stop), parent=root_widget):
@@ -1897,7 +1897,7 @@ def stop_selected_pid_from_list_gui():
         if normal_kill_success:
             messagebox.showinfo(get_text("info_title"), get_text("terminate_request_sent", pid=pid_to_stop, name=process_name_to_stop), parent=root_widget)
         else:
-            # 普通权限停止失败，询问是否尝试管理员权限
+            # Normal izinlerle durdurma başarısız oldu, yönetici izniyle denensin mi sorusunu sorun
             if messagebox.askyesno(get_text("confirm_stop_pid_admin_title"),
                                get_text("confirm_stop_pid_admin_message", pid=pid_to_stop, name=process_name_to_stop),
                                parent=root_widget):
@@ -1905,76 +1905,76 @@ def stop_selected_pid_from_list_gui():
                 if admin_kill_success:
                     messagebox.showinfo(get_text("info_title"), get_text("admin_stop_success", pid=pid_to_stop), parent=root_widget)
                 else:
-                    messagebox.showwarning(get_text("warning_title"), get_text("admin_stop_failure", pid=pid_to_stop, error="未知错误"), parent=root_widget)
+                    messagebox.showwarning(get_text("warning_title"), get_text("admin_stop_failure", pid=pid_to_stop, error="bilinmeyen hata"), parent=root_widget)
             else:
                 messagebox.showwarning(get_text("warning_title"), get_text("terminate_attempt_failed", pid=pid_to_stop, name=process_name_to_stop), parent=root_widget)
         query_port_and_display_pids_gui()
-
 def kill_process_pid_admin(pid: int) -> bool:
-    """使用管理员权限尝试终止进程。"""
+    """Yönetici izinleriyle işlemi sonlandırmayı dener."""
     system = platform.system()
     success = False
-    logger.info(f"尝试以管理员权限终止进程 PID: {pid} (系统: {system})")
+    logger.info(f"PID: {pid} işlemini yönetici izinleriyle sonlandırmayı deniyor (Sistem: {system})")
     try:
         if system == "Windows":
-            # 在Windows上使用PowerShell以管理员权限运行taskkill
+            # Windows'ta PowerShell ile yönetici izinleriyle taskkill çalıştır
             import ctypes
             if ctypes.windll.shell32.IsUserAnAdmin() == 0:
-                # 如果当前不是管理员，则尝试用管理员权限启动新进程
-                # 准备 PowerShell 命令
-                logger.info(f"当前非管理员权限，使用PowerShell提升权限")
+                # Şu anki kullanıcı yönetici değilse, yeni bir işlemi yönetici izinleriyle başlatmayı dene
+                # PowerShell komutunu hazırla
+                logger.info(f"Şu anda yönetici değil, PowerShell ile yetkilendirme yükseltmesi kullanılıyor")
                 ps_cmd = f"Start-Process -Verb RunAs taskkill -ArgumentList '/PID {pid} /F /T'"
-                logger.debug(f"执行PowerShell命令: {ps_cmd}")
+                logger.debug(f"PowerShell komutu yürütülüyor: {ps_cmd}")
                 result = subprocess.run(["powershell", "-Command", ps_cmd],
                                      capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                logger.info(f"PowerShell命令结果: 返回码={result.returncode}, 输出={result.stdout}, 错误={result.stderr}")
+                logger.info(f"PowerShell komutu sonucu: Dönüş kodu={result.returncode}, Çıktı={result.stdout}, Hata={result.stderr}")
                 success = result.returncode == 0
             else:
-                # 如果已经是管理员，则直接运行taskkill
-                logger.info(f"当前已是管理员权限，直接执行taskkill")
+                # Zaten yöneticiyse, doğrudan taskkill çalıştır
+                logger.info(f"Zaten yönetici izinlerinde, doğrudan taskkill çalıştırılıyor")
                 result = subprocess.run(["taskkill", "/PID", str(pid), "/F", "/T"],
                                      capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                logger.info(f"Taskkill命令结果: 返回码={result.returncode}, 输出={result.stdout}, 错误={result.stderr}")
+                logger.info(f"Taskkill komutu sonucu: Dönüş kodu={result.returncode}, Çıktı={result.stdout}, Hata={result.stderr}")
                 success = result.returncode == 0
-        elif system in ["Linux", "Darwin"]:  # Linux或macOS
-            # 使用sudo尝试终止进程
-            logger.info(f"使用sudo在新终端中终止进程")
+        elif system in ["Linux", "Darwin"]:  # Linux veya macOS
+            # İşlemi sonlandırmak için sudo kullan
+            logger.info(f"Yeni terminalde sudo kullanarak işlemi sonlandırıyor")
             cmd = ["sudo", "kill", "-9", str(pid)]
-            # 对于GUI程序，我们需要让用户在终端输入密码，所以使用新终端窗口
+            # GUI programları için, terminalde kullanıcıdan şifre girmesini istediğimiz için yeni bir terminal penceresi kullan
             if system == "Darwin":  # macOS
-                logger.info(f"在macOS上使用AppleScript打开Terminal并执行sudo命令")
+                logger.info(f"macOS'ta AppleScript kullanarak Terminal açılıyor ve sudo komutu yürütülüyor")
                 applescript = f'tell application "Terminal" to do script "sudo kill -9 {pid}"'
                 result = subprocess.run(["osascript", "-e", applescript], capture_output=True, text=True)
-                logger.info(f"AppleScript结果: 返回码={result.returncode}, 输出={result.stdout}, 错误={result.stderr}")
+                logger.info(f"AppleScript sonucu: Dönüş kodu={result.returncode}, Çıktı={result.stdout}, Hata={result.stderr}")
                 success = result.returncode == 0
             else:  # Linux
-                # 查找可用的终端模拟器
+                # Kullanılabilir terminal emülatörünü bul
                 import shutil
-                logger.info(f"在Linux上查找可用的终端模拟器")
+                logger.info(f"Linux'ta kullanılabilir terminal emülatörleri aranıyor")
                 terminal_emulator = shutil.which("x-terminal-emulator") or shutil.which("gnome-terminal") or \
                                    shutil.which("konsole") or shutil.which("xfce4-terminal") or shutil.which("xterm")
                 if terminal_emulator:
-                    logger.info(f"使用终端模拟器: {terminal_emulator}")
+                    logger.info(f"Terminal emülatörü kullanılıyor: {terminal_emulator}")
                     if "gnome-terminal" in terminal_emulator:
-                        logger.info(f"针对gnome-terminal的特殊处理")
+                        logger.info(f"gnome-terminal için özel işlem")
                         result = subprocess.run([terminal_emulator, "--", "sudo", "kill", "-9", str(pid)])
                     else:
-                        logger.info(f"使用通用终端启动命令")
+                        logger.info(f"Genel terminal başlatma komutu kullanılıyor")
                         result = subprocess.run([terminal_emulator, "-e", f"sudo kill -9 {pid}"])
-                    logger.info(f"终端命令结果: 返回码={result.returncode}")
+                    logger.info(f"Terminal komutu sonucu: Dönüş kodu={result.returncode}")
                     success = result.returncode == 0
                 else:
-                    # 如果找不到终端模拟器，尝试直接使用sudo
-                    logger.warning(f"未找到终端模拟器，尝试直接使用sudo (可能需要当前进程已有sudo权限)")
+                    # Terminal emülatörü bulunamazsa, doğrudan sudo kullanmayı dene
+                    logger.warning(f"Terminal emülatörü bulunamadı, doğrudan sudo kullanmayı dene (sudo iznine sahip olabilir)")
                     result = subprocess.run(["sudo", "kill", "-9", str(pid)], capture_output=True, text=True)
-                    logger.info(f"直接sudo命令结果: 返回码={result.returncode}, 输出={result.stdout}, 错误={result.stderr}")
+                    logger.info(f"Doğrudan sudo komutu sonucu: Dönüş kodu={result.returncode}, Çıktı={result.stdout}, Hata={result.stderr}")
                     success = result.returncode == 0
     except Exception as e:
-        logger.error(f"使用管理员权限终止PID {pid}时出错: {e}", exc_info=True)
+        logger.error(f"PID {pid} işlemi yönetici izinleriyle sonlandırılırken hata oluştu: {e}", exc_info=True)
         success = False
 
-    logger.info(f"管理员权限终止进程 PID: {pid} 结果: {'成功' if success else '失败'}")
+    logger.info(f"PID: {pid} işlemini yönetici izinleriyle sonlandırma sonucu: {'Başarılı' if success else 'Başarısız'}")
     return success
+
 
 def kill_custom_pid_gui():
     if not custom_pid_entry_var or not root_widget: return
@@ -1993,7 +1993,7 @@ def kill_custom_pid_gui():
         if normal_kill_success:
             messagebox.showinfo(get_text("info_title"), get_text("terminate_request_sent", pid=pid_to_kill, name=process_name_to_kill), parent=root_widget)
         else:
-            # 普通权限停止失败，询问是否尝试管理员权限
+            # Normal izinlerle durdurma başarısız oldu, yönetici izinleriyle denensin mi sorusunu sor
             if messagebox.askyesno(get_text("confirm_stop_pid_admin_title"),
                                 get_text("confirm_stop_pid_admin_message", pid=pid_to_kill, name=process_name_to_kill),
                                 parent=root_widget):
@@ -2001,7 +2001,7 @@ def kill_custom_pid_gui():
                 if admin_kill_success:
                     messagebox.showinfo(get_text("info_title"), get_text("admin_stop_success", pid=pid_to_kill), parent=root_widget)
                 else:
-                    messagebox.showwarning(get_text("warning_title"), get_text("admin_stop_failure", pid=pid_to_kill, error="未知错误"), parent=root_widget)
+                    messagebox.showwarning(get_text("warning_title"), get_text("admin_stop_failure", pid=pid_to_kill, error="bilinmeyen hata"), parent=root_widget)
             else:
                 messagebox.showwarning(get_text("warning_title"), get_text("terminate_attempt_failed", pid=pid_to_kill, name=process_name_to_kill), parent=root_widget)
         custom_pid_entry_var.set("")
@@ -2033,15 +2033,15 @@ def switch_language_gui(lang_code: str):
 def build_gui(root: tk.Tk):
     global process_status_text_var, port_entry_var, camoufox_debug_port_var, pid_listbox_widget, widgets_to_translate, managed_process_info, root_widget, menu_bar_ref, custom_pid_entry_var
     global stream_port_enabled_var, stream_port_var, helper_enabled_var, helper_endpoint_var, port_auto_check_var, proxy_address_var, proxy_enabled_var
-    global active_auth_file_display_var # 添加新的全局变量
-    global pid_list_lbl_frame_ref # 确保全局变量在此处声明
-    global g_config # 新增
+    global active_auth_file_display_var # Yeni global değişken
+    global pid_list_lbl_frame_ref # Global değişkenin burada ilan edildiğinden emin ol
+    global g_config # Yeni global
 
     root_widget = root
     root.title(get_text("title"))
     root.minsize(950, 600)
 
-    # 加载保存的配置
+    # Kaydedilen yapılandırmayı yükle
     g_config = load_config()
 
     s = ttk.Style()
@@ -2052,7 +2052,7 @@ def build_gui(root: tk.Tk):
         os.makedirs(ACTIVE_AUTH_DIR, exist_ok=True)
         os.makedirs(SAVED_AUTH_DIR, exist_ok=True)
     except OSError as e:
-        messagebox.showerror(get_text("error_title"), f"无法创建认证目录: {e}")
+        messagebox.showerror(get_text("error_title"), f"Kimlik doğrulama dizinleri oluşturulamadı: {e}")
 
     process_status_text_var = tk.StringVar(value=get_text("status_idle"))
     port_entry_var = tk.StringVar(value=str(g_config.get("fastapi_port", DEFAULT_FASTAPI_PORT)))
@@ -2065,46 +2065,46 @@ def build_gui(root: tk.Tk):
     port_auto_check_var = tk.BooleanVar(value=True)
     proxy_address_var = tk.StringVar(value=g_config.get("proxy_address", "http://127.0.0.1:7890"))
     proxy_enabled_var = tk.BooleanVar(value=g_config.get("proxy_enabled", False))
-    active_auth_file_display_var = tk.StringVar() # 初始化为空，后续由 _update_active_auth_display 更新
-
-    # 联动逻辑：移除强制启用代理的逻辑，现在代理配置更加灵活
-    # 用户可以根据需要独立配置流式代理和浏览器代理
+    active_auth_file_display_var = tk.StringVar() # Başlangıçta boş; _update_active_auth_display tarafından güncellenecek
+    # Bağlantı mantığı: Proxy'yi zorla etkinleştirme yaklaşımı kaldırıldı, yapılandırma daha esnek
+    # Kullanıcı akış proxy'sini ve tarayıcı proxy'sini ihtiyaçlarına göre ayrı ayrı ayarlayabilir
     def on_stream_proxy_toggle(*args):
-        # 不再强制启用代理，用户可以自由选择
+        # Proxy'yi zorla etkinleştirmek yerine kullanıcıya seçim özgürlüğü bırak
         pass
     stream_port_enabled_var.trace_add("write", on_stream_proxy_toggle)
 
 
+
     menu_bar_ref = tk.Menu(root)
     lang_menu = tk.Menu(menu_bar_ref, tearoff=0)
-    lang_menu.add_command(label="中文 (Chinese)", command=lambda: switch_language_gui('zh'))
+    lang_menu.add_command(label="Çince (Chinese)", command=lambda: switch_language_gui('zh'))
     lang_menu.add_command(label="English", command=lambda: switch_language_gui('en'))
     menu_bar_ref.add_cascade(label="Language", menu=lang_menu)
     root.config(menu=menu_bar_ref)
 
-    # --- 主 PanedWindow 实现三栏 ---
+    # --- Ana PanedWindow üç sütun düzenini uygular ---
     main_paned_window = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
     main_paned_window.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-    # --- 左栏 Frame ---
+    # --- Sol sütun çerçevesi ---
     left_frame_container = ttk.Frame(main_paned_window, padding="5")
-    main_paned_window.add(left_frame_container, weight=3) # 增大左栏初始权重
+    main_paned_window.add(left_frame_container, weight=3) # Sol sütunun başlangıç ağırlığını artır
     left_frame_container.columnconfigure(0, weight=1)
-    # 配置行权重，使得launch_options_frame和auth_section之间可以有空白，或者让它们紧凑排列
-    # 假设 port_section, launch_options_frame, auth_section 依次排列
+    # Satır ağırlıklarını ayarla; launch_options_frame ile auth_section arasında boşluk bırak veya sıkı tut
+    # port_section, launch_options_frame ve auth_section sırasını varsayar
     left_frame_container.rowconfigure(0, weight=0) # port_section
     left_frame_container.rowconfigure(1, weight=0) # launch_options_frame
-    left_frame_container.rowconfigure(2, weight=0) # auth_section (移到此处后)
-    left_frame_container.rowconfigure(3, weight=1) # 添加一个占位符Frame，使其填充剩余空间
+    left_frame_container.rowconfigure(2, weight=0) # auth_section taşındıktan sonra
+    left_frame_container.rowconfigure(3, weight=1) # Kalan alanı doldurmak için yer tutucu çerçeve
 
     left_current_row = 0
-    # 端口配置部分
+    # Port yapılandırma bölümü
     port_section = ttk.LabelFrame(left_frame_container, text="")
     port_section.grid(row=left_current_row, column=0, sticky="ew", padx=2, pady=(2,10))
     widgets_to_translate.append({"widget": port_section, "key": "port_section_label", "property": "text"})
     left_current_row += 1
 
-    # 添加重置按钮和服务关闭指南按钮
+    # Sıfırlama ve hizmet kapatma rehberi düğmeleri ekle
     port_controls_frame = ttk.Frame(port_section)
     port_controls_frame.pack(fill=tk.X, padx=5, pady=3)
     btn_reset = ttk.Button(port_controls_frame, text="", command=reset_to_defaults)
@@ -2115,7 +2115,7 @@ def build_gui(root: tk.Tk):
     btn_closing_guide.pack(side=tk.RIGHT, padx=(5,0))
     widgets_to_translate.append({"widget": btn_closing_guide, "key": "service_closing_guide_btn"})
 
-    # (内部控件保持在port_section中，使用pack使其紧凑)
+    # Dahili kontroller port_section içinde kalır; pack ile sıkı yerleşim sağlar
     # FastAPI Port
     fastapi_frame = ttk.Frame(port_section)
     fastapi_frame.pack(fill=tk.X, padx=5, pady=3)
@@ -2159,22 +2159,22 @@ def build_gui(root: tk.Tk):
     entry_helper_endpoint = ttk.Entry(helper_details_frame, textvariable=helper_endpoint_var)
     entry_helper_endpoint.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-    # 添加分隔符
+    # Ayırıcı ekle
     ttk.Separator(port_section, orient=tk.HORIZONTAL).pack(fill=tk.X, padx=5, pady=(8,5))
 
-    # 代理配置部分 - 独立的LabelFrame
+    # Proxy yapılandırma bölümü - bağımsız LabelFrame
     proxy_section = ttk.LabelFrame(port_section, text="")
     proxy_section.pack(fill=tk.X, padx=5, pady=(5,8))
     widgets_to_translate.append({"widget": proxy_section, "key": "proxy_section_label", "property": "text"})
 
-    # 代理启用复选框
+    # Proxy etkinleştirme seçim kutusu
     proxy_enable_frame = ttk.Frame(proxy_section)
     proxy_enable_frame.pack(fill=tk.X, padx=5, pady=(5,3))
     proxy_checkbox = ttk.Checkbutton(proxy_enable_frame, variable=proxy_enabled_var, text="")
     proxy_checkbox.pack(side=tk.LEFT)
     widgets_to_translate.append({"widget": proxy_checkbox, "key": "enable_proxy_label", "property": "text"})
 
-    # 代理地址输入
+    # Proxy adresi girişi
     proxy_address_frame = ttk.Frame(proxy_section)
     proxy_address_frame.pack(fill=tk.X, padx=5, pady=(0,5))
     lbl_proxy_address = ttk.Label(proxy_address_frame, text="")
@@ -2183,7 +2183,7 @@ def build_gui(root: tk.Tk):
     entry_proxy_address = ttk.Entry(proxy_address_frame, textvariable=proxy_address_var)
     entry_proxy_address.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0,5))
 
-    # 代理测试按钮
+    # Proxy testi düğmesi
     btn_test_proxy_inline = ttk.Button(proxy_address_frame, text="", command=test_proxy_connectivity_gui, width=8)
     btn_test_proxy_inline.pack(side=tk.RIGHT)
     widgets_to_translate.append({"widget": btn_test_proxy_inline, "key": "test_proxy_btn"})
@@ -2195,21 +2195,21 @@ def build_gui(root: tk.Tk):
     port_auto_check_btn.pack(side=tk.LEFT)
     widgets_to_translate.append({"widget": port_auto_check_btn, "key": "port_auto_check", "property": "text"})
 
-    # 启动选项部分
+    # Başlatma seçenekleri bölümü
     launch_options_frame = ttk.LabelFrame(left_frame_container, text="")
     launch_options_frame.grid(row=left_current_row, column=0, sticky="ew", padx=2, pady=5)
     widgets_to_translate.append({"widget": launch_options_frame, "key": "launch_options_label", "property": "text"})
     left_current_row += 1
-    lbl_launch_options_note = ttk.Label(launch_options_frame, text="", wraplength=240) # 调整wraplength
+    lbl_launch_options_note = ttk.Label(launch_options_frame, text="", wraplength=240) # wraplength değerini ayarla
     lbl_launch_options_note.pack(fill=tk.X, padx=5, pady=(5, 8))
     widgets_to_translate.append({"widget": lbl_launch_options_note, "key": "launch_options_note_revised"})
-    # (启动按钮)
+    # Başlatma düğmeleri
     btn_headed = ttk.Button(launch_options_frame, text="", command=start_headed_interactive_gui)
     btn_headed.pack(fill=tk.X, padx=5, pady=3)
     widgets_to_translate.append({"widget": btn_headed, "key": "launch_headed_interactive_btn"})
-    btn_headless = ttk.Button(launch_options_frame, text="", command=start_headless_gui) # command 和 key 修改
+    btn_headless = ttk.Button(launch_options_frame, text="", command=start_headless_gui) # command ve anahtar güncellendi
     btn_headless.pack(fill=tk.X, padx=5, pady=3)
-    widgets_to_translate.append({"widget": btn_headless, "key": "launch_headless_btn"}) # key 修改
+    widgets_to_translate.append({"widget": btn_headless, "key": "launch_headless_btn"}) # Anahtar güncellendi
     btn_virtual_display = ttk.Button(launch_options_frame, text="", command=start_virtual_display_gui)
     btn_virtual_display.pack(fill=tk.X, padx=5, pady=3)
     widgets_to_translate.append({"widget": btn_virtual_display, "key": "launch_virtual_display_btn"})
@@ -2228,25 +2228,25 @@ def build_gui(root: tk.Tk):
     btn_stop_llm_service.pack(fill=tk.X, padx=5, pady=3)
     widgets_to_translate.append({"widget": btn_stop_llm_service, "key": "stop_llm_service_btn"})
 
-    # 移除不再有用的"停止当前GUI管理的服务"按钮
+    # Artık gerekli olmayan "GUI tarafından yönetilen hizmeti durdur" düğmesini kaldır
     # btn_stop_service = ttk.Button(launch_options_frame, text="", command=stop_managed_service_gui)
     # btn_stop_service.pack(fill=tk.X, padx=5, pady=3)
     # widgets_to_translate.append({"widget": btn_stop_service, "key": "stop_gui_service_btn"})
 
 
+# Sol taraftaki içeriği yukarıda tutmak için bir yer tutucu Frame ekleyin (alt boşlukları azaltır)
+spacer_frame_left = ttk.Frame(left_frame_container)
+spacer_frame_left.grid(row=left_current_row, column=0, sticky="nsew")
+left_frame_container.rowconfigure(left_current_row, weight=1) # Yer tutucunun genişlemesini sağla
 
-    # 添加一个占位符Frame以推高左侧内容 (如果需要消除底部所有空白)
-    spacer_frame_left = ttk.Frame(left_frame_container)
-    spacer_frame_left.grid(row=left_current_row, column=0, sticky="nsew")
-    left_frame_container.rowconfigure(left_current_row, weight=1) # 让这个spacer扩展
 
-    # --- 中栏 Frame ---
+    # --- Orta sütun çerçevesi ---
     middle_frame_container = ttk.Frame(main_paned_window, padding="5")
-    main_paned_window.add(middle_frame_container, weight=2) # 调整中栏初始权重
+    main_paned_window.add(middle_frame_container, weight=2) # Orta sütunun başlangıç ağırlığını ayarla
     middle_frame_container.columnconfigure(0, weight=1)
     middle_frame_container.rowconfigure(0, weight=1)
     middle_frame_container.rowconfigure(1, weight=0)
-    middle_frame_container.rowconfigure(2, weight=0) # 认证管理现在在中栏
+    middle_frame_container.rowconfigure(2, weight=0) # Kimlik doğrulama yönetimi artık orta sütunda
 
     middle_current_row = 0
     pid_section_frame = ttk.Frame(middle_frame_container)
@@ -2256,7 +2256,7 @@ def build_gui(root: tk.Tk):
     middle_current_row +=1
 
     global pid_list_lbl_frame_ref
-    pid_list_lbl_frame_ref = ttk.LabelFrame(pid_section_frame, text=get_text("static_pid_list_title")) # 使用新的固定标题
+    pid_list_lbl_frame_ref = ttk.LabelFrame(pid_section_frame, text=get_text("static_pid_list_title")) # Sabit başlığı kullan
     pid_list_lbl_frame_ref.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=2, pady=2)
     pid_list_lbl_frame_ref.columnconfigure(0, weight=1)
     pid_list_lbl_frame_ref.rowconfigure(0, weight=1)
@@ -2277,7 +2277,7 @@ def build_gui(root: tk.Tk):
     btn_stop_pid.grid(row=0, column=1, sticky="ew", padx=(2,0))
     widgets_to_translate.append({"widget": btn_stop_pid, "key": "stop_selected_pid_btn"})
 
-    # 代理测试按钮已移至代理配置部分，此处不再重复
+    # Proxy test butonu artık proxy yapılandırma bölümünde, burada tekrar etmiyor
 
     kill_custom_frame = ttk.LabelFrame(middle_frame_container, text="")
     kill_custom_frame.grid(row=middle_current_row, column=0, sticky="ew", padx=2, pady=5)
@@ -2291,7 +2291,7 @@ def build_gui(root: tk.Tk):
     widgets_to_translate.append({"widget": btn_kill_custom_pid, "key": "kill_custom_pid_btn"})
 
     if ENABLE_QWEN_LOGIN_SUPPORT:
-        # 认证文件管理 (移到中栏PID终止功能下方)
+        # Kimlik doğrulama dosyası yönetimi (orta sütuna PID sonlandırma işlevinin altına taşındı)
         auth_section_middle = ttk.LabelFrame(middle_frame_container, text="")
         auth_section_middle.grid(row=middle_current_row, column=0, sticky="ew", padx=2, pady=5)
         widgets_to_translate.append({"widget": auth_section_middle, "key": "auth_files_management", "property": "text"})
@@ -2300,7 +2300,7 @@ def build_gui(root: tk.Tk):
         btn_manage_auth_middle.pack(fill=tk.X, padx=5, pady=5)
         widgets_to_translate.append({"widget": btn_manage_auth_middle, "key": "manage_auth_files_btn"})
 
-        # 显示当前认证文件
+        # Mevcut kimlik doğrulama dosyasını göster
         auth_display_frame = ttk.Frame(auth_section_middle)
         auth_display_frame.pack(fill=tk.X, padx=5, pady=(0,5))
         lbl_current_auth_static = ttk.Label(auth_display_frame, text="")
@@ -2311,9 +2311,9 @@ def build_gui(root: tk.Tk):
     else:
         active_auth_file_display_var.set(get_text("current_auth_file_none"))
 
-    # --- 右栏 Frame ---
+    # --- Sağ sütun çerçevesi ---
     right_frame_container = ttk.Frame(main_paned_window, padding="5")
-    main_paned_window.add(right_frame_container, weight=2) # 调整右栏初始权重，使其相对小一些
+    main_paned_window.add(right_frame_container, weight=2) # Sağ sütunun başlangıç ağırlığını ayarla, biraz daha küçük tut
     right_frame_container.columnconfigure(0, weight=1)
     right_frame_container.rowconfigure(1, weight=1)
     right_current_row = 0
@@ -2334,20 +2334,20 @@ def build_gui(root: tk.Tk):
     widgets_to_translate.append({"widget": output_log_area_frame, "key": "output_label", "property": "text"})
     output_log_area_frame.columnconfigure(0, weight=1)
     output_log_area_frame.rowconfigure(0, weight=1)
-    output_scrolled_text = scrolledtext.ScrolledText(output_log_area_frame, height=10, width=35, wrap=tk.WORD, state=tk.DISABLED) # 调整宽度
+    output_scrolled_text = scrolledtext.ScrolledText(output_log_area_frame, height=10, width=35, wrap=tk.WORD, state=tk.DISABLED) # Genişliği ayarla
     output_scrolled_text.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
     managed_process_info["output_area"] = output_scrolled_text
 
     update_all_ui_texts_gui()
-    query_port_and_display_pids_gui() # 初始化时查询一次FastAPI端口
-    _update_active_auth_display() # 初始化时更新认证文件显示
+    query_port_and_display_pids_gui() # Başlangıçta FastAPI portunu sorgula
+    _update_active_auth_display() # Başlangıçta kimlik doğrulama dosyasını güncelle
     root.protocol("WM_DELETE_WINDOW", on_app_close_main)
 
 pid_list_lbl_frame_ref: Optional[ttk.LabelFrame] = None
 
-# 新增辅助函数用于获取和验证启动参数
+# Başlatma parametrelerini toplamak ve doğrulamak için yardımcı fonksiyon eklendi
 def _get_launch_parameters() -> Optional[Dict[str, Any]]:
-    """从GUI收集并验证启动参数。如果无效则返回None。"""
+    """GUI'den başlatma parametrelerini toplar ve doğrular. Geçersizse None döndürür."""
     params = {}
     try:
         params["fastapi_port"] = get_fastapi_port_from_gui()
@@ -2361,22 +2361,22 @@ def _get_launch_parameters() -> Optional[Dict[str, Any]]:
                 messagebox.showwarning(get_text("warning_title"), get_text("stream_port_out_of_range"))
                 return None
         else:
-            params["stream_port"] = 0 # 如果未启用，则端口视为0（禁用）
+            params["stream_port"] = 0 # Etkin değilse port 0 kabul edilir (devre dışı)
 
         params["helper_enabled"] = helper_enabled_var.get()
         params["helper_endpoint"] = helper_endpoint_var.get().strip() if params["helper_enabled"] else ""
 
         return params
-    except ValueError: # 通常来自 int() 转换失败
-        messagebox.showwarning(get_text("warning_title"), get_text("enter_valid_port_warn")) # 或者更具体的错误
+    except ValueError: # Genellikle int() dönüşümünden kaynaklanır
+        messagebox.showwarning(get_text("warning_title"), get_text("enter_valid_port_warn")) # veya daha spesifik hata
         return None
     except Exception as e:
-        messagebox.showerror(get_text("error_title"), f"获取启动参数时出错: {e}")
+        messagebox.showerror(get_text("error_title"), f"Başlatma parametreleri alınırken hata oluştu: {e}")
         return None
 
-# 更新on_app_close_main函数，反映服务独立性
+# on_app_close_main fonksiyonunu hizmet bağımsızlığını yansıtacak şekilde güncelle
 def on_app_close_main():
-    # 保存当前配置
+    # Mevcut yapılandırmayı kaydet
     save_config()
 
     # Attempt to stop LLM service if it's running
@@ -2405,11 +2405,11 @@ def on_app_close_main():
                 logger.error(f"Error stopping {service_name} during app close: {e}")
             finally:
                 llm_service_process_info["popen"] = None # Clear it
+# Hizmetler tümü bağımsız terminalde başlatılır, bu yüzden sadece kullanıcının GUI'yi kapatmak isteyip istemediğini onaylayın
+if messagebox.askyesno(get_text("confirm_quit_title"), get_text("confirm_quit_message"), parent=root_widget):
+    if root_widget:
+        root_widget.destroy()
 
-    # 服务都是在独立终端中启动的，所以只需确认用户是否想关闭GUI
-    if messagebox.askyesno(get_text("confirm_quit_title"), get_text("confirm_quit_message"), parent=root_widget):
-        if root_widget:
-            root_widget.destroy()
 
 def show_service_closing_guide():
     messagebox.showinfo(

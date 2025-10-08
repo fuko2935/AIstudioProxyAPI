@@ -1,15 +1,15 @@
-import argparse # 新增导入
+import argparse # Yeni içe aktarma
 from flask import Flask, request, jsonify
 import requests
 import time
 import uuid
 import logging
 import json
-import sys # 新增导入
+import sys # Yeni içe aktarma
 from typing import Dict, Any
 from datetime import datetime, UTC
 
-# 自定义日志 Handler，确保刷新
+# Özel log Handler'ı, tazelemeyi sağlar
 class FlushingStreamHandler(logging.StreamHandler):
     def emit(self, record):
         try:
@@ -18,33 +18,33 @@ class FlushingStreamHandler(logging.StreamHandler):
         except Exception:
             self.handleError(record)
 
-# 配置日志（更改为中文）
+# Log yapılandırması (Türkçe'ye değiştirildi)
 log_format = '%(asctime)s [%(levelname)s] %(message)s'
 formatter = logging.Formatter(log_format)
 
-# 创建一个 handler 明确指向 sys.stderr 并使用自定义的 FlushingStreamHandler
-# sys.stderr 在子进程中应该被 gui_launcher.py 的 PIPE 捕获
+# sys.stderr'i açıkça hedefleyen bir handler oluştur ve özel FlushingStreamHandler kullan
+# sys.stderr alt süreçte gui_launcher.py'nin PIPE'ı tarafından yakalanmalı
 stderr_handler = FlushingStreamHandler(sys.stderr)
 stderr_handler.setFormatter(formatter)
 stderr_handler.setLevel(logging.INFO)
 
-# 获取根 logger 并添加我们的 handler
-# 这能确保所有传播到根 logger 的日志 (包括 Flask 和 Werkzeug 的，如果它们没有自己的特定 handler)
-# 都会经过这个 handler。
+# Kök logger'ı al ve handler'ımızı ekle
+# Bu, tüm kök logger'a yayılmış logların (Flask ve Werkzeug'unkiler dahil, kendi özel handler'ları yoksa)
+# bu handler'dan geçmesini sağlar。
 root_logger = logging.getLogger()
-# 清除可能存在的由 basicConfig 或其他库添加的默认 handlers，以避免重复日志或意外输出
+# basicConfig veya diğer kütüphaneler tarafından eklenen varsayılan handler'ları temizle, tekrarlanan logları veya beklenmeyen çıktıları önlemek için
 if root_logger.hasHandlers():
     root_logger.handlers.clear()
 root_logger.addHandler(stderr_handler)
-root_logger.setLevel(logging.INFO) # 确保根 logger 级别也设置了
+root_logger.setLevel(logging.INFO) # Kök logger seviyesinin de ayarlandığından emin ol
 
-logger = logging.getLogger(__name__) # 获取名为 'llm' 的 logger，它会继承根 logger 的配置
+logger = logging.getLogger(__name__) # 'llm' adlı logger'ı al, kök logger yapılandırmasını miras alır
 
 app = Flask(__name__)
-# Flask 的 app.logger 默认会传播到 root logger。
-# 如果需要，也可以为 app.logger 和 werkzeug logger 单独配置，但通常让它们传播到 root 就够了。
-# 例如:
-# app.logger.handlers.clear() # 清除 Flask 可能添加的默认 handler
+# Flask'ın app.logger'ı varsayılan olarak root logger'a yayılır.
+# Gerekirse app.logger ve werkzeug logger için ayrı ayrı yapılandırılabilir, ama genellikle root'a yayılmaları yeterlidir.
+# Örneğin:
+# app.logger.handlers.clear() # Flask'ın eklediği varsayılan handler'ı temizle
 # app.logger.addHandler(stderr_handler)
 # app.logger.setLevel(logging.INFO)
 #
@@ -53,8 +53,8 @@ app = Flask(__name__)
 # werkzeug_logger.addHandler(stderr_handler)
 # werkzeug_logger.setLevel(logging.INFO)
 
-# 启用模型配置：直接定义启用的模型名称
-# 用户可添加/删除模型名称，动态生成元数据
+# Model yapılandırmasını etkinleştir: Etkin model adlarını doğrudan tanımla
+# Kullanıcı model adlarını ekleyebilir/silebilir, meta verileri dinamik olarak oluştur
 ENABLED_MODELS = {
     "gemini-2.5-pro-preview-05-06",
     "gemini-2.5-flash-preview-04-17",
@@ -65,13 +65,13 @@ ENABLED_MODELS = {
     "gemini-1.5-flash-8b",
 }
 
-# API 配置
-API_URL = "" # 将在 main 函数中根据参数设置
+# API yapılandırması
+API_URL = "" # main fonksiyonunda parametreye göre ayarlanacak
 DEFAULT_MAIN_SERVER_PORT = 2048
-# 请替换为你的 API 密钥（请勿公开分享）
+# Lütfen kendi API anahtarınızla değiştirin (lütfen paylaşmayın)
 API_KEY = "123456"
 
-# 模拟 Ollama 聊天响应数据库
+# Ollama sohbet yanıt veritabanını simüle et
 OLLAMA_MOCK_RESPONSES = {
     "What is the capital of France?": "The capital of France is Paris.",
     "Tell me about AI.": "AI is the simulation of human intelligence in machines, enabling tasks like reasoning and learning.",
@@ -80,19 +80,19 @@ OLLAMA_MOCK_RESPONSES = {
 
 @app.route("/", methods=["GET"])
 def root_endpoint():
-    """模拟 Ollama 根路径，返回 'Ollama is running'"""
-    logger.info("收到根路径请求")
+    """Ollama kök yolunu simüle et, 'Ollama is running' döndür"""
+    logger.info("Kök yol isteği alındı")
     return "Ollama is running", 200
 
 @app.route("/api/tags", methods=["GET"])
 def tags_endpoint():
-    """模拟 Ollama 的 /api/tags 端点，动态生成启用模型列表"""
-    logger.info("收到 /api/tags 请求")
+    """Ollama'nın /api/tags uç noktasını simüle et, etkin model listesini dinamik olarak oluştur"""
+    logger.info("/api/tags isteği alındı")
     models = []
     for model_name in ENABLED_MODELS:
-        # 推导 family：从模型名称提取前缀（如 "gpt-4o" -> "gpt"）
+        # Aile çıkar: Model adından öneki çıkar (örn. "gpt-4o" -> "gpt")
         family = model_name.split('-')[0].lower() if '-' in model_name else model_name.lower()
-        # 特殊处理已知模型
+        # Bilinen modeller için özel işleme
         if 'llama' in model_name:
             family = 'llama'
             format = 'gguf'
@@ -126,13 +126,13 @@ def tags_endpoint():
                 "quantization_level": quantization_level
             }
         })
-    logger.info(f"返回 {len(models)} 个模型: {[m['name'] for m in models]}")
+    logger.info(f"{len(models)} model döndürüyor: {[m['name'] for m in models]}")
     return jsonify({"models": models}), 200
 
 def generate_ollama_mock_response(prompt: str, model: str) -> Dict[str, Any]:
-    """生成模拟的 Ollama 聊天响应，符合 /api/chat 格式"""
+    """Simüle edilmiş Ollama sohbet yanıtı oluştur, /api/chat formatına uygun"""
     response_content = OLLAMA_MOCK_RESPONSES.get(
-        prompt, f"Echo: {prompt} (这是来自模拟 Ollama 服务器的响应。)"
+        prompt, f"Echo: {prompt} (Bu simüle edilmiş Ollama sunucusundan gelen yanıttır.)"
     )
 
     return {
@@ -152,7 +152,7 @@ def generate_ollama_mock_response(prompt: str, model: str) -> Dict[str, Any]:
     }
 
 def convert_api_to_ollama_response(api_response: Dict[str, Any], model: str) -> Dict[str, Any]:
-    """将 API 的 OpenAI 格式响应转换为 Ollama 格式"""
+    """API'nin OpenAI format yanıtını Ollama formatına dönüştür"""
     try:
         content = api_response["choices"][0]["message"]["content"]
         total_duration = api_response.get("usage", {}).get("total_tokens", 30) * 1000000
@@ -175,46 +175,46 @@ def convert_api_to_ollama_response(api_response: Dict[str, Any], model: str) -> 
             "eval_duration": completion_tokens * 100000
         }
     except KeyError as e:
-        logger.error(f"转换API响应失败: 缺少键 {str(e)}")
-        return {"error": f"无效的API响应格式: 缺少键 {str(e)}"}
+        logger.error(f"API yanıtı dönüştürme başarısız: Anahtar eksik {str(e)}")
+        return {"error": f"Geçersiz API yanıt formatı: Anahtar eksik {str(e)}"}
 
 def print_request_params(data: Dict[str, Any], endpoint: str) -> None:
-    """打印请求参数"""
-    model = data.get("model", "未指定")
-    temperature = data.get("temperature", "未指定")
+    """İstek parametrelerini yazdır"""
+    model = data.get("model", "Belirtilmedi")
+    temperature = data.get("temperature", "Belirtilmedi")
     stream = data.get("stream", False)
 
     messages_info = []
     for msg in data.get("messages", []):
-        role = msg.get("role", "未知")
+        role = msg.get("role", "Bilinmiyor")
         content = msg.get("content", "")
         content_preview = content[:50] + "..." if len(content) > 50 else content
         messages_info.append(f"[{role}] {content_preview}")
 
     params_str = {
-        "端点": endpoint,
-        "模型": model,
-        "温度": temperature,
-        "流式输出": stream,
-        "消息数量": len(data.get("messages", [])),
-        "消息预览": messages_info
+        "Uç Nokta": endpoint,
+        "Model": model,
+        "Sıcaklık": temperature,
+        "Akış Çıktısı": stream,
+        "Mesaj Sayısı": len(data.get("messages", [])),
+        "Mesaj Önizlemesi": messages_info
     }
 
-    logger.info(f"请求参数: {json.dumps(params_str, ensure_ascii=False, indent=2)}")
+    logger.info(f"İstek parametreleri: {json.dumps(params_str, ensure_ascii=False, indent=2)}")
 
 @app.route("/api/chat", methods=["POST"])
 def ollama_chat_endpoint():
-    """模拟 Ollama 的 /api/chat 端点，所有模型都能使用"""
+    """Ollama'nın /api/chat uç noktasını simüle et, tüm modeller kullanılabilir"""
     try:
         data = request.get_json()
         if not data or "messages" not in data:
-            logger.error("无效请求: 缺少 'messages' 字段")
-            return jsonify({"error": "无效请求: 缺少 'messages' 字段"}), 400
+            logger.error("Geçersiz istek: 'messages' alanı eksik")
+            return jsonify({"error": "Geçersiz istek: 'messages' alanı eksik"}), 400
 
         messages = data.get("messages", [])
         if not messages or not isinstance(messages, list):
-            logger.error("无效请求: 'messages' 必须是非空列表")
-            return jsonify({"error": "无效请求: 'messages' 必须是非空列表"}), 400
+            logger.error("Geçersiz istek: 'messages' boş olmayan bir liste olmalı")
+            return jsonify({"error": "Geçersiz istek: 'messages' boş olmayan bir liste olmalı"}), 400
 
         model = data.get("model", "llama3.2")
         user_message = next(
@@ -222,15 +222,15 @@ def ollama_chat_endpoint():
             ""
         )
         if not user_message:
-            logger.error("未找到用户消息")
-            return jsonify({"error": "未找到用户消息"}), 400
+            logger.error("Kullanıcı mesajı bulunamadı")
+            return jsonify({"error": "Kullanıcı mesajı bulunamadı"}), 400
 
-        # 打印请求参数
+        # İstek parametrelerini yazdır
         print_request_params(data, "/api/chat")
 
-        logger.info(f"处理 /api/chat 请求, 模型: {model}")
+        logger.info(f"/api/chat isteği işleniyor, model: {model}")
 
-        # 移除模型限制，所有模型都使用API
+        # Model sınırlamasını kaldır, tüm modeller API kullanır
         api_request = {
             "model": model,
             "messages": messages,
@@ -243,37 +243,37 @@ def ollama_chat_endpoint():
         }
 
         try:
-            logger.info(f"转发请求到API: {API_URL}")
+            logger.info(f"İstek API'ye yönlendiriliyor: {API_URL}")
             response = requests.post(API_URL, json=api_request, headers=headers, timeout=300000)
             response.raise_for_status()
             api_response = response.json()
             ollama_response = convert_api_to_ollama_response(api_response, model)
-            logger.info(f"收到来自API的响应，模型: {model}")
+            logger.info(f"API'den yanıt alındı, model: {model}")
             return jsonify(ollama_response), 200
         except requests.RequestException as e:
-            logger.error(f"API请求失败: {str(e)}")
-            # 如果API请求失败，使用模拟响应作为备用
-            logger.info(f"使用模拟响应作为备用方案，模型: {model}")
+            logger.error(f"API isteği başarısız: {str(e)}")
+            # API isteği başarısız olursa, simüle edilmiş yanıtı yedek olarak kullan
+            logger.info(f"Simüle edilmiş yanıtı yedek olarak kullan, model: {model}")
             response = generate_ollama_mock_response(user_message, model)
             return jsonify(response), 200
 
     except Exception as e:
-        logger.error(f"/api/chat 服务器错误: {str(e)}")
-        return jsonify({"error": f"服务器错误: {str(e)}"}), 500
+        logger.error(f"/api/chat sunucu hatası: {str(e)}")
+        return jsonify({"error": f"Sunucu hatası: {str(e)}"}), 500
 
 @app.route("/v1/chat/completions", methods=["POST"])
 def api_chat_endpoint():
-    """转发到API的 /v1/chat/completions 端点，并转换为 Ollama 格式"""
+    """API'nin /v1/chat/completions uç noktasına yönlendir ve Ollama formatına dönüştür"""
     try:
         data = request.get_json()
         if not data or "messages" not in data:
-            logger.error("无效请求: 缺少 'messages' 字段")
-            return jsonify({"error": "无效请求: 缺少 'messages' 字段"}), 400
+            logger.error("Geçersiz istek: 'messages' alanı eksik")
+            return jsonify({"error": "Geçersiz istek: 'messages' alanı eksik"}), 400
 
         messages = data.get("messages", [])
         if not messages or not isinstance(messages, list):
-            logger.error("无效请求: 'messages' 必须是非空列表")
-            return jsonify({"error": "无效请求: 'messages' 必须是非空列表"}), 400
+            logger.error("Geçersiz istek: 'messages' boş olmayan bir liste olmalı")
+            return jsonify({"error": "Geçersiz istek: 'messages' boş olmayan bir liste olmalı"}), 400
 
         model = data.get("model", "grok-3")
         user_message = next(
@@ -281,37 +281,37 @@ def api_chat_endpoint():
             ""
         )
         if not user_message:
-            logger.error("未找到用户消息")
-            return jsonify({"error": "未找到用户消息"}), 400
+            logger.error("Kullanıcı mesajı bulunamadı")
+            return jsonify({"error": "Kullanıcı mesajı bulunamadı"}), 400
 
-        # 打印请求参数
+        # İstek parametrelerini yazdır
         print_request_params(data, "/v1/chat/completions")
 
-        logger.info(f"处理 /v1/chat/completions 请求, 模型: {model}")
+        logger.info(f"/v1/chat/completions isteği işleniyor, model: {model}")
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {API_KEY}"
         }
 
         try:
-            logger.info(f"转发请求到API: {API_URL}")
+            logger.info(f"İstek API'ye yönlendiriliyor: {API_URL}")
             response = requests.post(API_URL, json=data, headers=headers, timeout=300000)
             response.raise_for_status()
             api_response = response.json()
             ollama_response = convert_api_to_ollama_response(api_response, model)
-            logger.info(f"收到来自API的响应，模型: {model}")
+            logger.info(f"API'den yanıt alındı, model: {model}")
             return jsonify(ollama_response), 200
         except requests.RequestException as e:
-            logger.error(f"API请求失败: {str(e)}")
-            return jsonify({"error": f"API请求失败: {str(e)}"}), 500
+            logger.error(f"API isteği başarısız: {str(e)}")
+            return jsonify({"error": f"API isteği başarısız: {str(e)}"}), 500
 
     except Exception as e:
-        logger.error(f"/v1/chat/completions 服务器错误: {str(e)}")
-        return jsonify({"error": f"服务器错误: {str(e)}"}), 500
+        logger.error(f"/v1/chat/completions sunucu hatası: {str(e)}")
+        return jsonify({"error": f"Sunucu hatası: {str(e)}"}), 500
 
-def main():
-    """启动模拟服务器"""
-    global API_URL # 声明我们要修改全局变量
+    def main():
+        """Simüle sunucuyu başlat"""
+    global API_URL # Değiştireceğimiz global değişkeni beyan et
 
     parser = argparse.ArgumentParser(description="LLM Mock Service for AI Studio Proxy")
     parser.add_argument(
@@ -323,9 +323,9 @@ def main():
     args = parser.parse_args()
 
     API_URL = f"http://localhost:{args.main_server_port}/v1/chat/completions"
-    
-    logger.info(f"模拟 Ollama 和 API 代理服务器将转发请求到: {API_URL}")
-    logger.info("正在启动模拟 Ollama 和 API 代理服务器，地址: http://localhost:11434")
+
+    logger.info(f"Simüle Ollama ve API proxy sunucusu isteği yönlendirecek: {API_URL}")
+    logger.info("Simüle Ollama ve API proxy sunucusu başlatılıyor, adres: http://localhost:11434")
     app.run(host="0.0.0.0", port=11434, debug=False)
 
 if __name__ == "__main__":

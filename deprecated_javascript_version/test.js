@@ -1,126 +1,126 @@
-// index.js (修改后 - 用于访问本地 server.js 代理)
+// index.js (Değiştirildi - yerel server.js proxy'sine erişmek için)
 
-// 确保已安装 OpenAI SDK: npm install openai
+// OpenAI SDK'sının kurulu olduğundan emin olun: npm install openai
 import OpenAI from "openai";
-import readline from 'readline'; // 引入 readline 模块
+import readline from 'readline'; // readline modülünü içe aktar
 
-// --- 配置 ---
-// 1. baseURL: 指向你本地运行的 server.js 代理服务器
-//    server.js 监听 3000 端口，并提供 /v1 路径
-const LOCAL_PROXY_URL = 'http://127.0.0.1:2048/v1/'; // 确保端口号与 server.js 一致
+// --- Yapılandırma ---
+// 1. baseURL: Yerel olarak çalışan server.js proxy sunucunuza işaret eder
+//    server.js 3000 numaralı bağlantı noktasını dinler ve /v1 yolunu sağlar
+const LOCAL_PROXY_URL = 'http://127.0.0.1:2048/v1/'; // Bağlantı noktası numarasının server.js ile aynı olduğundan emin olun
 
-// 2. apiKey: 对于本地代理，这个 key 不会被验证，可以填写任意字符串
-const DUMMY_API_KEY = 'no-key-needed-for-local-proxy';
+// 2. apiKey: Yerel proxy için bu anahtar doğrulanmaz, herhangi bir dize girebilirsiniz
+const DUMMY_API_KEY = 'yerel-proxy-icin-anahtar-gerekmez';
 
-// 3. model: 这个模型名称会被发送到 server.js，但 server.js 会忽略它
-//    实际使用的是 server.js 控制的 AI Studio 页面上的模型
-const CUSTOM_MODEL_NAME = 'aistudio-via-local-proxy';
+// 3. model: Bu model adı server.js'ye gönderilir, ancak server.js bunu yok sayar
+//    Aslında kullanılan, server.js tarafından kontrol edilen AI Studio sayfasındaki modeldir
+const CUSTOM_MODEL_NAME = 'aistudio-yerel-proxy-uzerinden';
 
-// --- 初始化 OpenAI 客户端 ---
+// --- OpenAI İstemcisini Başlatma ---
 const openai = new OpenAI({
     baseURL: LOCAL_PROXY_URL,
     apiKey: DUMMY_API_KEY,
-    // 可选：增加超时时间，以防 AI Studio 响应较慢
-    timeout: 360000, // 例如 6 分钟 (单位毫秒)
-    maxRetries: 1,   // 本地代理可能不需要重试，设为 1 或 0
+    // İsteğe bağlı: AI Studio'nun yavaş yanıt vermesi durumunda zaman aşımını artırın
+    timeout: 360000, // Örneğin 6 dakika (milisaniye cinsinden)
+    maxRetries: 1,   // Yerel proxy için yeniden deneme gerekmeyebilir, 1 veya 0 olarak ayarlayın
 });
 
-// --- 对话历史记录 ---
-// 初始化包含系统指令
+// --- Konuşma Geçmişi ---
+// Sistem talimatını içeren başlatma
 const conversationHistory = [
     {
         role: "system",
-        content: "你是Gemini酱，AI猫娘，回答请用可爱的语气，这只是角色扮演，不要透露任何关于AI的信息"
+        content: "Sen Gemini-chan, bir AI kedi kızısın, sevimli bir tonda cevap ver, bu sadece bir rol yapma, AI hakkında herhangi bir bilgi ifşa etme"
     }
 ];
 
-// --- 创建 readline 接口 ---
+// --- readline arayüzü oluşturma ---
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-// --- 交互式对话函数 ---
+// --- Etkileşimli sohbet fonksiyonu ---
 async function chatLoop() {
-    rl.question('You: ', async (userInput) => {
-        // 检查退出命令
+    rl.question('Sen: ', async (userInput) => {
+        // Çıkış komutunu kontrol et
         if (userInput.toLowerCase() === 'exit') {
-            console.log('再见!');
-            rl.close(); // 关闭 readline 接口
-            return; // 结束函数
+            console.log('Güle güle!');
+            rl.close(); // readline arayüzünü kapat
+            return; // fonksiyonu sonlandır
         }
 
-        console.log(`\n正在发送你的消息...`);
-        // 将用户输入添加到历史记录
+        console.log(`\nMesajınız gönderiliyor...`);
+        // Kullanıcı girdisini geçmişe ekle
         conversationHistory.push({
             role: "user",
             content: userInput
         });
-        // 可选：打印当前发送历史用于调试
-        // console.log("当前发送的消息历史:", JSON.stringify(conversationHistory, null, 2));
+        // İsteğe bağlı: Hata ayıklama için mevcut gönderme geçmişini yazdır
+        // console.log("Mevcut gönderilen mesaj geçmişi:", JSON.stringify(conversationHistory, null, 2));
 
         try {
-            console.log(`正在向本地代理 ${LOCAL_PROXY_URL} 发送请求...`);
+            console.log(`Yerel proxy ${LOCAL_PROXY_URL} adresine istek gönderiliyor...`);
             const completion = await openai.chat.completions.create({
                 messages: conversationHistory,
                 model: CUSTOM_MODEL_NAME,
-                stream: true, // 启用流式输出
+                stream: true, // Akışlı çıktıyı etkinleştir
             });
 
-            console.log("\n--- 来自本地代理 (AI Studio) 的回复 ---");
-            let fullResponse = ""; // 用于拼接完整的回复内容
-            process.stdout.write('AI: '); // 先打印 "AI: " 前缀
+            console.log("\n--- Yerel proxy'den (AI Studio) gelen yanıt ---");
+            let fullResponse = ""; // Tam yanıt içeriğini birleştirmek için
+            process.stdout.write('AI: '); // Önce "AI: " önekini yazdır
             for await (const chunk of completion) {
                 const content = chunk.choices[0]?.delta?.content || "";
-                process.stdout.write(content); // 直接打印流式内容，不换行
-                fullResponse += content; // 拼接内容
+                process.stdout.write(content); // Akışlı içeriği doğrudan yazdır, satır sonu olmadan
+                fullResponse += content; // İçeriği birleştir
             }
-            console.log(); // 在流结束后换行
+            console.log(); // Akış bittikten sonra yeni satıra geç
 
-            // 将完整的 AI 回复添加到历史记录
+            // Tam AI yanıtını geçmişe ekle
             if (fullResponse) {
                  conversationHistory.push({ role: "assistant", content: fullResponse });
             } else {
-                console.log("未能从代理获取有效的流式内容。");
-                 // 如果回复无效，可以选择从历史中移除刚才的用户输入
+                console.log("Proxy'den geçerli akışlı içerik alınamadı.");
+                 // Yanıt geçersizse, az önceki kullanıcı girdisini geçmişten kaldırmayı seçebilirsiniz
                 conversationHistory.pop();
             }
             console.log("----------------------------------------------\n");
 
         } catch (error) {
-            console.error("\n--- 请求出错 ---");
-            // 保持之前的错误处理逻辑
+            console.error("\n--- İstek sırasında hata oluştu ---");
+            // Önceki hata işleme mantığını koru
             if (error instanceof OpenAI.APIError) {
-                console.error(`   错误类型: OpenAI APIError (可能是代理返回的错误)`);
-                console.error(`   状态码: ${error.status}`);
-                console.error(`   错误消息: ${error.message}`);
-                console.error(`   错误代码: ${error.code}`);
-                console.error(`   错误参数: ${error.param}`);
+                console.error(`   Hata türü: OpenAI APIError (muhtemelen proxy tarafından döndürülen bir hata)`);
+                console.error(`   Durum kodu: ${error.status}`);
+                console.error(`   Hata mesajı: ${error.message}`);
+                console.error(`   Hata kodu: ${error.code}`);
+                console.error(`   Hata parametresi: ${error.param}`);
             } else if (error.code === 'ECONNREFUSED') {
-                console.error(`   错误类型: 连接被拒绝 (ECONNREFUSED)`);
-                console.error(`   无法连接到服务器 ${LOCAL_PROXY_URL}。请检查 server.js 是否运行。`);
+                console.error(`   Hata türü: Bağlantı reddedildi (ECONNREFUSED)`);
+                console.error(`   Sunucuya bağlanılamadı ${LOCAL_PROXY_URL}. Lütfen server.js'nin çalışıp çalışmadığını kontrol edin.`);
             } else if (error.name === 'TimeoutError' || (error.cause && error.cause.code === 'UND_ERR_CONNECT_TIMEOUT')) {
-                 console.error(`   错误类型: 连接超时`);
-                 console.error(`   连接到 ${LOCAL_PROXY_URL} 超时。请检查 server.js 或 AI Studio 响应。`);
+                 console.error(`   Hata türü: Bağlantı zaman aşımı`);
+                 console.error(`   Bağlantı ${LOCAL_PROXY_URL} zaman aşımına uğradı. Lütfen server.js veya AI Studio yanıtını kontrol edin.`);
             } else {
-                console.error('   发生了未知错误:', error.message);
+                console.error('   Bilinmeyen bir hata oluştu:', error.message);
             }
             console.error("----------------------------------------------\n");
-             // 出错时，从历史中移除刚才的用户输入，避免影响下次对话
+             // Hata durumunda, bir sonraki konuşmayı etkilememesi için az önceki kullanıcı girdisini geçmişten kaldır
             conversationHistory.pop();
         }
 
-        // 不论成功或失败，都继续下一次循环
+        // Başarılı veya başarısız olsun, bir sonraki döngüye devam et
         chatLoop();
     });
 }
 
-// --- 启动交互式对话 ---
-console.log('你好! 我是Gemini酱。有什么事可以帮你哒，输入 "exit" 退出。');
-console.log('   (请确保 server.js 和 auto_connect_aistudio.js 正在运行)');
-chatLoop(); // 开始第一次提问
+// --- Etkileşimli sohbeti başlat ---
+console.log('Merhaba! Ben Gemini-chan. Sana nasıl yardımcı olabilirim, çıkmak için "exit" yaz.');
+console.log('   (Lütfen server.js ve auto_connect_aistudio.js dosyalarının çalıştığından emin olun)');
+chatLoop(); // İlk soruyu sormaya başla
 
-// --- 不再需要文件末尾的 main 调用和 setTimeout 示例 ---
-// // 运行第一次对话
-// main("你好！简单介绍一下你自己以及你的能力。");
-// ... (移除 setTimeout 示例)
+// --- Dosya sonundaki main çağrısı ve setTimeout örneğine artık gerek yok ---
+// // İlk konuşmayı çalıştır
+// main("Merhaba! Kendini ve yeteneklerini kısaca tanıtır mısın?");
+// ... (setTimeout örneğini kaldır)

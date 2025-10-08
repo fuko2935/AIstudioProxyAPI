@@ -1,6 +1,6 @@
 """
-API工具函数模块
-包含SSE生成、流处理、token统计和请求验证等工具函数
+API yardımcı fonksiyonları modülü.
+SSE üretimi, akış işleme, token istatistikleri ve istek doğrulama gibi araçları içerir.
 """
 
 import asyncio
@@ -17,9 +17,9 @@ import os
 import hashlib
 
 
-# --- SSE生成函数 ---
+# --- SSE üretim fonksiyonları ---
 def generate_sse_chunk(delta: str, req_id: str, model: str) -> str:
-    """生成SSE数据块"""
+    """SSE veri bloğu oluşturur"""
     chunk_data = {
         "id": f"chatcmpl-{req_id}",
         "object": "chat.completion.chunk",
@@ -31,7 +31,7 @@ def generate_sse_chunk(delta: str, req_id: str, model: str) -> str:
 
 
 def generate_sse_stop_chunk(req_id: str, model: str, reason: str = "stop", usage: dict = None) -> str:
-    """生成SSE停止块"""
+    """SSE durdurma bloğu oluşturur"""
     stop_chunk_data = {
         "id": f"chatcmpl-{req_id}",
         "object": "chat.completion.chunk",
@@ -40,7 +40,7 @@ def generate_sse_stop_chunk(req_id: str, model: str, reason: str = "stop", usage
         "choices": [{"index": 0, "delta": {}, "finish_reason": reason}]
     }
     
-    # 添加usage信息（如果提供）
+    # usage bilgisi verildiyse ekle
     if usage:
         stop_chunk_data["usage"] = usage
     
@@ -48,118 +48,118 @@ def generate_sse_stop_chunk(req_id: str, model: str, reason: str = "stop", usage
 
 
 def generate_sse_error_chunk(message: str, req_id: str, error_type: str = "server_error") -> str:
-    """生成SSE错误块"""
+    """SSE hata bloğu oluşturur"""
     error_chunk = {"error": {"message": message, "type": error_type, "param": None, "code": req_id}}
     return f"data: {json.dumps(error_chunk)}\n\n"
 
 
-# --- 流处理工具函数 ---
+# --- Akış işleme araçları ---
 async def use_stream_response(req_id: str) -> AsyncGenerator[Any, None]:
-    """使用流响应（从服务器的全局队列获取数据）"""
+    """Sunucunun global kuyruğundan veri çekerek akış yanıtı kullanır"""
     from server import STREAM_QUEUE, logger
     import queue
     
     if STREAM_QUEUE is None:
-        logger.warning(f"[{req_id}] STREAM_QUEUE is None, 无法使用流响应")
+        logger.warning(f"[{req_id}] STREAM_QUEUE boş, akış yanıtı kullanılamıyor")
         return
     
-    logger.info(f"[{req_id}] 开始使用流响应")
+    logger.info(f"[{req_id}] Akış yanıtı kullanılmaya başlandı")
     
     empty_count = 0
-    max_empty_retries = 300  # 30秒超时
+    max_empty_retries = 300  # 30 saniyelik zaman aşımı
     data_received = False
     
     try:
         while True:
             try:
-                # 从队列中获取数据
+                # Kuyruktan veri al
                 data = STREAM_QUEUE.get_nowait()
-                if data is None:  # 结束标志
-                    logger.info(f"[{req_id}] 接收到流结束标志")
+                if data is None:  # Bitiş işareti
+                    logger.info(f"[{req_id}] Akış bitiş sinyali alındı")
                     break
                 
-                # 重置空计数器
+                # Boş sayaç sıfırla
                 empty_count = 0
                 data_received = True
-                logger.debug(f"[{req_id}] 接收到流数据: {type(data)} - {str(data)[:200]}...")
+                logger.debug(f"[{req_id}] Akış verisi alındı: {type(data)} - {str(data)[:200]}...")
                 
-                # 检查是否是JSON字符串形式的结束标志
+                # JSON string biçiminde bitiş işareti var mı kontrol et
                 if isinstance(data, str):
                     try:
                         parsed_data = json.loads(data)
                         if parsed_data.get("done") is True:
-                            logger.info(f"[{req_id}] 接收到JSON格式的完成标志")
+                            logger.info(f"[{req_id}] JSON formatında tamamlanma işareti alındı")
                             yield parsed_data
                             break
                         else:
                             yield parsed_data
                     except json.JSONDecodeError:
-                        # 如果不是JSON，直接返回字符串
-                        logger.debug(f"[{req_id}] 返回非JSON字符串数据")
+                        # JSON değilse doğrudan string döndür
+                        logger.debug(f"[{req_id}] JSON olmayan string veri döndürülüyor")
                         yield data
                 else:
-                    # 直接返回数据
+                    # Veriyi doğrudan döndür
                     yield data
                     
-                    # 检查字典类型的结束标志
+                    # Sözlük tipinde bitiş işareti olup olmadığını denetle
                     if isinstance(data, dict) and data.get("done") is True:
-                        logger.info(f"[{req_id}] 接收到字典格式的完成标志")
+                        logger.info(f"[{req_id}] Sözlük formatında tamamlanma işareti alındı")
                         break
                 
             except (queue.Empty, asyncio.QueueEmpty):
                 empty_count += 1
-                if empty_count % 50 == 0:  # 每5秒记录一次等待状态
-                    logger.info(f"[{req_id}] 等待流数据... ({empty_count}/{max_empty_retries})")
+                if empty_count % 50 == 0:  # Her 5 saniyede bekleme durumunu kaydet
+                    logger.info(f"[{req_id}] Akış verisi bekleniyor... ({empty_count}/{max_empty_retries})")
                 
                 if empty_count >= max_empty_retries:
                     if not data_received:
-                        logger.error(f"[{req_id}] 流响应队列空读取次数达到上限且未收到任何数据，可能是辅助流未启动或出错")
+                        logger.error(f"[{req_id}] Akış kuyruğunda veri alınamadı; yardımcı akış başlamamış olabilir")
                     else:
-                        logger.warning(f"[{req_id}] 流响应队列空读取次数达到上限 ({max_empty_retries})，结束读取")
+                        logger.warning(f"[{req_id}] Akış kuyruğunda boş okuma sayısı limite ulaştı ({max_empty_retries}); okuma sonlandırılıyor")
                     
-                    # 返回超时完成信号，而不是简单退出
+                    # Basitçe çıkmak yerine zaman aşımı tamamlanma sinyali gönder
                     yield {"done": True, "reason": "internal_timeout", "body": "", "function": []}
                     return
                     
-                await asyncio.sleep(0.1)  # 100ms等待
+                await asyncio.sleep(0.1)  # 100ms bekle
                 continue
                 
     except Exception as e:
-        logger.error(f"[{req_id}] 使用流响应时出错: {e}")
+        logger.error(f"[{req_id}] Akış yanıtı kullanılırken hata: {e}")
         raise
     finally:
-        logger.info(f"[{req_id}] 流响应使用完成，数据接收状态: {data_received}")
+        logger.info(f"[{req_id}] Akış yanıtı tamamlandı; veri alındı mı: {data_received}")
 
 
 async def clear_stream_queue():
-    """清空流队列（与原始参考文件保持一致）"""
+    """Akış kuyruğunu temizler (orijinal davranış ile uyumlu)"""
     from server import STREAM_QUEUE, logger
     import queue
 
     if STREAM_QUEUE is None:
-        logger.info("流队列未初始化或已被禁用，跳过清空操作。")
+        logger.info("Akış kuyruğu başlatılmamış veya devre dışı; temizleme atlandı.")
         return
 
     while True:
         try:
             data_chunk = await asyncio.to_thread(STREAM_QUEUE.get_nowait)
-            # logger.info(f"清空流式队列缓存，丢弃数据: {data_chunk}")
+            # logger.info(f"Akış kuyruğundaki veri temizlendi: {data_chunk}")
         except queue.Empty:
-            logger.info("流式队列已清空 (捕获到 queue.Empty)。")
+            logger.info("Akış kuyruğu boş (queue.Empty yakalandı).")
             break
         except Exception as e:
-            logger.error(f"清空流式队列时发生意外错误: {e}", exc_info=True)
+            logger.error(f"Akış kuyruğu temizlenirken beklenmeyen hata: {e}", exc_info=True)
             break
-    logger.info("流式队列缓存清空完毕。")
+    logger.info("Akış kuyruğu temizliği tamamlandı.")
 
 
 # --- Helper response generator ---
 async def use_helper_get_response(helper_endpoint: str, helper_sapisid: str) -> AsyncGenerator[str, None]:
-    """使用Helper服务获取响应的生成器"""
+    """Helper servisi üzerinden yanıt sağlayan üretici"""
     from server import logger
     import aiohttp
 
-    logger.info(f"正在尝试使用Helper端点: {helper_endpoint}")
+    logger.info(f"Helper uç noktası kullanılmaya çalışılıyor: {helper_endpoint}")
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -174,24 +174,24 @@ async def use_helper_get_response(helper_endpoint: str, helper_sapisid: str) -> 
                         if chunk:
                             yield chunk.decode('utf-8', errors='ignore')
                 else:
-                    logger.error(f"Helper端点返回错误状态: {response.status}")
+                    logger.error(f"Helper uç noktası hata durumu döndürdü: {response.status}")
                     
     except Exception as e:
-        logger.error(f"使用Helper端点时出错: {e}")
+        logger.error(f"Helper uç noktası kullanılırken hata: {e}")
 
 
-# --- 请求验证函数 ---
+# --- İstek doğrulama fonksiyonları ---
 def validate_chat_request(messages: List[Message], req_id: str) -> Dict[str, Optional[str]]:
-    """验证聊天请求"""
+    """Sohbet isteğini doğrular"""
     from server import logger
     
     if not messages:
-        raise ValueError(f"[{req_id}] 无效请求: 'messages' 数组缺失或为空。")
-    
+        raise ValueError(f"[{req_id}] Geçersiz istek: 'messages' dizisi eksik veya boş.")
+
     if not any(msg.role != 'system' for msg in messages):
-        raise ValueError(f"[{req_id}] 无效请求: 所有消息都是系统消息。至少需要一条用户或助手消息。")
+        raise ValueError(f"[{req_id}] Geçersiz istek: Tüm mesajlar sistem rolüne sahip. En az bir kullanıcı veya asistan mesajı gerekli.")
     
-    # 返回验证结果
+    # Doğrulama sonucunu döndür
     return {
         "error": None,
         "warning": None
@@ -202,81 +202,81 @@ def extract_base64_to_local(base64_data: str) -> str:
     output_dir = os.path.join(os.path.dirname(__file__), '..', 'upload_images')
     match = re.match(r"data:image/(\w+);base64,(.*)", base64_data)
     if not match:
-        print("错误: Base64 数据格式不正确。")
+        print("Hata: Base64 veri formatı geçersiz.")
         return None
 
-    image_type = match.group(1)  # 例如 "png", "jpeg"
+    image_type = match.group(1)  # örneğin "png", "jpeg"
     encoded_image_data = match.group(2)
 
     try:
-        # 解码 Base64 字符串
+        # Base64 string'ini çöz
         decoded_image_data = base64.b64decode(encoded_image_data)
     except base64.binascii.Error as e:
-        print(f"错误: Base64 解码失败 - {e}")
+        print(f"Hata: Base64 çözümlenemedi - {e}")
         return None
 
-    # 计算图片数据的 MD5 值
+    # Görsel verisinin MD5 değerini hesapla
     md5_hash = hashlib.md5(decoded_image_data).hexdigest()
 
-    # 确定文件扩展名和完整文件路径
+    # Dosya uzantısını ve tam yolu belirle
     file_extension = f".{image_type}"
     output_filepath = os.path.join(output_dir, f"{md5_hash}{file_extension}")
 
-    # 确保输出目录存在
+    # Çıkış klasörünün var olduğundan emin ol
     os.makedirs(output_dir, exist_ok=True)
 
     if os.path.exists(output_filepath):
-        print(f"文件已存在，跳过保存: {output_filepath}")
+        print(f"Dosya zaten mevcut, kaydedilmiyor: {output_filepath}")
         return output_filepath
 
-    # 保存图片到文件
+    # Görseli dosyaya kaydet
     try:
         with open(output_filepath, "wb") as f:
             f.write(decoded_image_data)
-        print(f"图片已成功保存到: {output_filepath}")
+        print(f"Görsel başarıyla kaydedildi: {output_filepath}")
         return output_filepath
     except IOError as e:
-        print(f"错误: 保存文件失败 - {e}")
+        print(f"Hata: Dosya kaydedilemedi - {e}")
         return None
 
 
-# --- 提示准备函数 ---
+# --- İpucu hazırlama fonksiyonları ---
 def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
-    """准备组合提示"""
+    """Birleşik istemi hazırlar"""
     from server import logger
     
-    logger.info(f"[{req_id}] (准备提示) 正在从 {len(messages)} 条消息准备组合提示 (包括历史)。")
+    logger.info(f"[{req_id}] (İstem Hazırlama) {len(messages)} mesajdan birleşik istem hazırlanıyor (geçmiş dahil).")
     
     combined_parts = []
     system_prompt_content: Optional[str] = None
     processed_system_message_indices = set()
-    images_list = []  # 将 image_list 的初始化移到循环外部
+    images_list = []  # image_list'i döngü dışında başlat
 
-    # 处理系统消息
+    # Sistem mesajlarını işle
     for i, msg in enumerate(messages):
         if msg.role == 'system':
             content = msg.content
             if isinstance(content, str) and content.strip():
                 system_prompt_content = content.strip()
                 processed_system_message_indices.add(i)
-                logger.info(f"[{req_id}] (准备提示) 在索引 {i} 找到并使用系统提示: '{system_prompt_content[:80]}...'")
-                system_instr_prefix = "系统指令:\n"
+                logger.info(f"[{req_id}] (İstem Hazırlama) İndeks {i} konumunda sistem yönergesi bulundu: '{system_prompt_content[:80]}...'")
+                system_instr_prefix = "Sistem talimatı:\n"
                 combined_parts.append(f"{system_instr_prefix}{system_prompt_content}")
             else:
-                logger.info(f"[{req_id}] (准备提示) 在索引 {i} 忽略非字符串或空的系统消息。")
+                logger.info(f"[{req_id}] (İstem Hazırlama) İndeks {i} konumundaki boş veya geçersiz sistem mesajı atlandı.")
                 processed_system_message_indices.add(i)
             break
     
     role_map_ui = {"user": "", "assistant": "", "system": "", "tool": ""}
     turn_separator = "\n---\n"
     
-    # 处理其他消息
+    # Diğer mesajları işle
     for i, msg in enumerate(messages):
         if i in processed_system_message_indices:
             continue
         
         if msg.role == 'system':
-            logger.info(f"[{req_id}] (准备提示) 跳过在索引 {i} 的后续系统消息。")
+            logger.info(f"[{req_id}] (İstem Hazırlama) İndeks {i} konumundaki ek sistem mesajı atlandı.")
             continue
         
         if combined_parts:
@@ -294,7 +294,7 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
         if isinstance(content, str):
             content_str = content.strip()
         elif isinstance(content, list):
-            # 处理多模态内容
+            # Çok modlu içeriği işle
             text_parts = []
             for item in content:
                 if hasattr(item, 'type') and item.type == 'text':
@@ -305,22 +305,22 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
                     image_url_value = item.image_url.url
                     if image_url_value.startswith("data:image/"):
                         try:
-                            # 提取 Base64 字符串
+                            # Base64 string'ini ayıkla
                             image_full_path = extract_base64_to_local(image_url_value)
                             images_list.append(image_full_path)
                         except (ValueError, requests.exceptions.RequestException, Exception) as e:
-                            print(f"处理 Base64 图片并上传到 Imgur 失败: {e}")
+                            print(f"Base64 görsel işlenip yüklenemedi: {e}")
                 else:
-                    logger.warning(f"[{req_id}] (准备提示) 警告: 在索引 {i} 的消息中忽略非文本或未知类型的 content item")
+                    logger.warning(f"[{req_id}] (İstem Hazırlama) Uyarı: İndeks {i} içindeki bilinmeyen içerik öğesi atlandı")
             content_str = "\n".join(text_parts).strip()
         else:
-            logger.warning(f"[{req_id}] (准备提示) 警告: 角色 {role} 在索引 {i} 的内容类型意外 ({type(content)}) 或为 None。")
+            logger.warning(f"[{req_id}] (İstem Hazırlama) Uyarı: Rol {role} için beklenmeyen içerik türü ({type(content)}) veya None bulundu (indeks {i}).")
             content_str = str(content or "").strip()
         
         if content_str:
             current_turn_parts.append(content_str)
         
-        # 处理工具调用
+        # Araç çağrılarını işle
         tool_calls = msg.tool_calls
         if role == 'assistant' and tool_calls:
             if content_str:
@@ -340,7 +340,7 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
                         formatted_args = func_args_str if func_args_str is not None else "{}"
                     
                     tool_call_visualizations.append(
-                        f"请求调用函数: {func_name}\n参数:\n{formatted_args}"
+                        f"Fonksiyon çağrısı isteği: {func_name}\nParametreler:\n{formatted_args}"
                     )
             
             if tool_call_visualizations:
@@ -349,57 +349,57 @@ def prepare_combined_prompt(messages: List[Message], req_id: str) -> str:
         if len(current_turn_parts) > 1 or (role == 'assistant' and tool_calls):
             combined_parts.append("".join(current_turn_parts))
         elif not combined_parts and not current_turn_parts:
-            logger.info(f"[{req_id}] (准备提示) 跳过角色 {role} 在索引 {i} 的空消息 (且无工具调用)。")
+            logger.info(f"[{req_id}] (İstem Hazırlama) Rol {role} için indeks {i} konumundaki boş mesaj (araç çağrısı yok) atlandı.")
         elif len(current_turn_parts) == 1 and not combined_parts:
-            logger.info(f"[{req_id}] (准备提示) 跳过角色 {role} 在索引 {i} 的空消息 (只有前缀)。")
+            logger.info(f"[{req_id}] (İstem Hazırlama) Rol {role} için indeks {i} konumundaki boş mesaj (yalnızca ön ek) atlandı.")
     
     final_prompt = "".join(combined_parts)
     if final_prompt:
         final_prompt += "\n"
     
     preview_text = final_prompt[:300].replace('\n', '\\n')
-    logger.info(f"[{req_id}] (准备提示) 组合提示长度: {len(final_prompt)}。预览: '{preview_text}...'")
+    logger.info(f"[{req_id}] (İstem Hazırlama) Birleşik istem uzunluğu: {len(final_prompt)}. Önizleme: '{preview_text}...'")
     
     return final_prompt,images_list
 
 
 def estimate_tokens(text: str) -> int:
     """
-    估算文本的token数量
-    使用简单的字符计数方法：
-    - 英文：大约4个字符 = 1个token
-    - 中文：大约1.5个字符 = 1个token  
-    - 混合文本：采用加权平均
+    Metindeki tahmini token sayısını hesaplar.
+    Basit karakter sayımı kuralları:
+    - İngilizce: yaklaşık 4 karakter = 1 token
+    - Çince: yaklaşık 1.5 karakter = 1 token
+    - Karma metin: ağırlıklı ortalama kullanılır
     """
     if not text:
         return 0
     
-    # 统计中文字符数量（包括中文标点）
+    # Çince karakterlerin (noktalama dahil) sayısını hesapla
     chinese_chars = sum(1 for char in text if '\u4e00' <= char <= '\u9fff' or '\u3000' <= char <= '\u303f' or '\uff00' <= char <= '\uffef')
     
-    # 统计非中文字符数量
+    # Diğer karakterleri say
     non_chinese_chars = len(text) - chinese_chars
     
-    # 计算token估算
-    chinese_tokens = chinese_chars / 1.5  # 中文大约1.5字符/token
-    english_tokens = non_chinese_chars / 4.0  # 英文大约4字符/token
+    # Token tahmini
+    chinese_tokens = chinese_chars / 1.5  # Çince ~1.5 karakter/token
+    english_tokens = non_chinese_chars / 4.0  # İngilizce ~4 karakter/token
     
     return max(1, int(chinese_tokens + english_tokens))
 
 
 def calculate_usage_stats(messages: List[dict], response_content: str, reasoning_content: str = None) -> dict:
     """
-    计算token使用统计
+    Token kullanım istatistiklerini hesaplar.
     
     Args:
-        messages: 请求中的消息列表
-        response_content: 响应内容
-        reasoning_content: 推理内容（可选）
+        messages: İstem mesajları listesi
+        response_content: Yanıt metni
+        reasoning_content: Opsiyonel çıkarım içeriği
     
     Returns:
-        包含token使用统计的字典
+        Token kullanım bilgilerini içeren sözlük
     """
-    # 计算输入token（prompt tokens）
+    # Girdi token sayısını hesapla (prompt tokens)
     prompt_text = ""
     for message in messages:
         role = message.get("role", "")
@@ -408,14 +408,14 @@ def calculate_usage_stats(messages: List[dict], response_content: str, reasoning
     
     prompt_tokens = estimate_tokens(prompt_text)
     
-    # 计算输出token（completion tokens）
+    # Çıktı token sayısını hesapla (completion tokens)
     completion_text = response_content or ""
     if reasoning_content:
         completion_text += reasoning_content
     
     completion_tokens = estimate_tokens(completion_text)
     
-    # 总token数
+    # Toplam token sayısı
     total_tokens = prompt_tokens + completion_tokens
     
     return {
@@ -426,5 +426,5 @@ def calculate_usage_stats(messages: List[dict], response_content: str, reasoning
 
 
 def generate_sse_stop_chunk_with_usage(req_id: str, model: str, usage_stats: dict, reason: str = "stop") -> str:
-    """生成带usage统计的SSE停止块"""
+    """Kullanım istatistiklerini içeren SSE durdurma bloğu oluşturur"""
     return generate_sse_stop_chunk(req_id, model, reason, usage_stats) 

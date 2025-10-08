@@ -1,4 +1,4 @@
-# 日志设置功能
+# Günlük ayarları işlevi
 from .setup import setup_server_logging, restore_original_streams
 
 __all__ = [

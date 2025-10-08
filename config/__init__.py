@@ -1,17 +1,17 @@
 """
-配置模块统一入口
-导出所有配置项，便于其他模块导入使用
+Yapılandırma modüllerinin birleşik giriş noktası.
+Tüm yapılandırma öğelerini dışa aktararak diğer modüllerin kullanımını kolaylaştırır.
 """
 
-# 从各个配置文件导入所有配置项
+# Yapılandırmaları ilgili modüllerden içe aktar
 from .constants import *
 from .timeouts import *
 from .selectors import *
 from .settings import *
 
-# 显式导出主要配置项（用于IDE自动完成和类型检查）
+# IDE tamamlama ve tip denetimi için başlıca yapılandırmaları açıkça dışa aktar
 __all__ = [
-    # 常量配置
+    # Sabit (constant) değerler
     'MODEL_NAME',
     'CHAT_COMPLETION_ID_PREFIX',
     'DEFAULT_FALLBACK_MODEL_ID',
@@ -43,7 +43,7 @@ __all__ = [
     'WAIT_FOR_ELEMENT_TIMEOUT_MS',
     'PSEUDO_STREAM_DELAY',
     
-    # 选择器配置
+    # Seçici (selector) yapılandırmaları
     'PROMPT_TEXTAREA_SELECTOR',
     'INPUT_SELECTOR',
     'INPUT_SELECTOR2',
@@ -69,7 +69,7 @@ __all__ = [
     'USE_URL_CONTEXT_SELECTOR',
     'UPLOAD_BUTTON_SELECTOR',
     
-    # 设置配置
+    # Ayar odaklı seçenekler
     'DEBUG_LOGS_ENABLED',
     'TRACE_LOGS_ENABLED',
     'AUTO_SAVE_AUTH',
@@ -85,8 +85,8 @@ __all__ = [
     'USERSCRIPT_PATH',
     'ENABLE_QWEN_LOGIN_SUPPORT',
 
-    # 工具函数
+    # Yardımcı fonksiyonlar
     'get_environment_variable',
     'get_boolean_env',
     'get_int_env',
-] 
+]

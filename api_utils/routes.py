@@ -1,6 +1,6 @@
 """
-FastAPI路由处理器模块
-包含所有API端点的处理函数
+FastAPI yönlendirici (route) işleyicilerini barındıran modül.
+Tüm API uç noktalarına ait işlevleri içerir.
 """
 
 import asyncio
@@ -17,23 +17,23 @@ from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from playwright.async_api import Page as AsyncPage
 
-# --- 配置模块导入 ---
+# --- Yapılandırma modülünü içe aktar ---
 from config import *
 
-# --- models模块导入 ---
+# --- models modülünü içe aktar ---
 from models import ChatCompletionRequest, WebSocketConnectionManager
 
-# --- browser_utils模块导入 ---
+# --- browser_utils modülünü içe aktar ---
 from browser_utils import _handle_model_list_response, get_default_qwen_models, refresh_model_catalog
 
-# --- 依赖项导入 ---
+# --- Bağımlılıkları içe aktar ---
 from .dependencies import *
 
 MODEL_LIST_REFRESH_TTL_SECONDS = int(os.environ.get('MODEL_LIST_REFRESH_TTL_SECONDS', '300'))
 
-# --- 静态文件端点 ---
+# --- Statik dosya uç noktaları ---
 async def read_index(logger: logging.Logger = Depends(get_logger)):
-    """返回主页面"""
+    """Ana sayfayı döndürür"""
     index_html_path = os.path.join(os.path.dirname(__file__), "..", "index.html")
     if not os.path.exists(index_html_path):
         logger.error(f"index.html not found at {index_html_path}")
@@ -42,7 +42,7 @@ async def read_index(logger: logging.Logger = Depends(get_logger)):
 
 
 async def get_css(logger: logging.Logger = Depends(get_logger)):
-    """返回CSS文件"""
+    """CSS dosyasını döndürür"""
     css_path = os.path.join(os.path.dirname(__file__), "..", "webui.css")
     if not os.path.exists(css_path):
         logger.error(f"webui.css not found at {css_path}")
@@ -51,7 +51,7 @@ async def get_css(logger: logging.Logger = Depends(get_logger)):
 
 
 async def get_js(logger: logging.Logger = Depends(get_logger)):
-    """返回JavaScript文件"""
+    """JavaScript dosyasını döndürür"""
     js_path = os.path.join(os.path.dirname(__file__), "..", "webui.js")
     if not os.path.exists(js_path):
         logger.error(f"webui.js not found at {js_path}")
@@ -59,9 +59,9 @@ async def get_js(logger: logging.Logger = Depends(get_logger)):
     return FileResponse(js_path, media_type="application/javascript")
 
 
-# --- API信息端点 ---
+# --- API bilgisi ucu ---
 async def get_api_info(request: Request, current_ai_studio_model_id: str = Depends(get_current_ai_studio_model_id)):
-    """返回API信息"""
+    """API bilgilerini döndürür"""
     from api_utils import auth_utils
 
     server_port = request.url.port or os.environ.get('SERVER_PORT_INFO', '8000')
@@ -92,13 +92,13 @@ async def get_api_info(request: Request, current_ai_studio_model_id: str = Depen
     })
 
 
-# --- 健康检查端点 ---
+# --- Sağlık kontrolü ucu ---
 async def health_check(
     server_state: Dict[str, Any] = Depends(get_server_state),
     worker_task = Depends(get_worker_task),
     request_queue: Queue = Depends(get_request_queue)
 ):
-    """健康检查"""
+    """Sağlık kontrolü"""
     is_worker_running = bool(worker_task and not worker_task.done())
     launch_mode = os.environ.get('LAUNCH_MODE', 'unknown')
     browser_page_critical = launch_mode != "direct_debug_no_browser"
@@ -112,12 +112,12 @@ async def health_check(
     q_size = request_queue.qsize() if request_queue else -1
     
     status_message_parts = []
-    if server_state["is_initializing"]: status_message_parts.append("初始化进行中")
-    if not server_state["is_playwright_ready"]: status_message_parts.append("Playwright 未就绪")
+    if server_state["is_initializing"]: status_message_parts.append("Başlatma devam ediyor")
+    if not server_state["is_playwright_ready"]: status_message_parts.append("Playwright hazır değil")
     if browser_page_critical:
-        if not server_state["is_browser_connected"]: status_message_parts.append("浏览器未连接")
-        if not server_state["is_page_ready"]: status_message_parts.append("页面未就绪")
-    if not is_worker_running: status_message_parts.append("Worker 未运行")
+        if not server_state["is_browser_connected"]: status_message_parts.append("Tarayıcı bağlı değil")
+        if not server_state["is_page_ready"]: status_message_parts.append("Sayfa hazır değil")
+    if not is_worker_running: status_message_parts.append("Worker çalışmıyor")
     
     status = {
         "status": status_val,
@@ -126,14 +126,14 @@ async def health_check(
     }
     
     if status_val == "OK":
-        status["message"] = f"服务运行中;队列长度: {q_size}。"
+        status["message"] = f"Hizmet çalışıyor; kuyruk uzunluğu: {q_size}."
         return JSONResponse(content=status, status_code=200)
     else:
-        status["message"] = f"服务不可用;问题: {(', '.join(status_message_parts) or '未知原因')}. 队列长度: {q_size}."
+        status["message"] = f"Hizmet kullanılamıyor; sorun: {(', '.join(status_message_parts) or 'bilinmeyen neden')}. Kuyruk uzunluğu: {q_size}."
         return JSONResponse(content=status, status_code=503)
 
 
-# --- 模型列表端点 ---
+# --- Model listesi ucu ---
 async def list_models(
     logger: logging.Logger = Depends(get_logger),
     model_list_fetch_event: Event = Depends(get_model_list_fetch_event),
@@ -141,16 +141,16 @@ async def list_models(
     parsed_model_list: List[Dict[str, Any]] = Depends(get_parsed_model_list),
     excluded_model_ids: Set[str] = Depends(get_excluded_model_ids)
 ):
-    """获取模型列表"""
-    logger.info("[API] 收到 /v1/models 请求。")
-    
+    """Model listesini döndürür"""
+    logger.info("[API] /v1/models isteği alındı.")
+
     if not model_list_fetch_event.is_set() and page_instance and not page_instance.is_closed():
-        logger.info("/v1/models: 模型列表事件未设置，尝试刷新页面...")
+        logger.info("/v1/models: Model listesi olayı ayarlanmamış; sayfa yenileniyor...")
         try:
             await page_instance.reload(wait_until="domcontentloaded", timeout=20000)
             await asyncio.wait_for(model_list_fetch_event.wait(), timeout=10.0)
         except Exception as e:
-            logger.error(f"/v1/models: 刷新或等待模型列表时出错: {e}")
+            logger.error(f"/v1/models: Model listesi yenilenirken veya beklenirken hata oluştu: {e}")
         finally:
             if not model_list_fetch_event.is_set():
                 model_list_fetch_event.set()
@@ -163,11 +163,11 @@ async def list_models(
 
     if refresh_needed:
         if page_instance and not page_instance.is_closed():
-            logger.info("/v1/models: 缓存为空或已过期，尝试刷新模型目录。")
+            logger.info("/v1/models: Önbellek boş ya da süresi dolmuş; model kataloğu yenileniyor.")
             try:
                 refreshed_models = await refresh_model_catalog(page_instance, req_id="api-model-refresh")
             except Exception as refresh_err:
-                logger.error(f"/v1/models: 刷新模型目录失败: {refresh_err}")
+                logger.error(f"/v1/models: Model kataloğu yenilenemedi: {refresh_err}")
                 refreshed_models = []
 
             filtered_models = [m for m in refreshed_models if m.get("id") not in excluded_model_ids] if refreshed_models else []
@@ -180,7 +180,7 @@ async def list_models(
                 if model_list_fetch_event and not model_list_fetch_event.is_set():
                     model_list_fetch_event.set()
             else:
-                logger.warning("/v1/models: 刷新后仍无可用模型，使用 DEFAULT_QWEN_MODELS 作为回退。")
+                logger.warning("/v1/models: Yenileme sonrası kullanılabilir model bulunamadı; DEFAULT_QWEN_MODELS kullanılacak.")
                 parsed_model_list = get_default_qwen_models()
                 server.parsed_model_list = parsed_model_list
                 server.global_model_list_raw_json = parsed_model_list
@@ -188,7 +188,7 @@ async def list_models(
                 if model_list_fetch_event and not model_list_fetch_event.is_set():
                     model_list_fetch_event.set()
         else:
-            logger.warning("/v1/models: 页面实例不可用，使用 DEFAULT_QWEN_MODELS 作为回退。")
+            logger.warning("/v1/models: Sayfa örneği mevcut değil; DEFAULT_QWEN_MODELS kullanılacak.")
             parsed_model_list = get_default_qwen_models()
             server.parsed_model_list = parsed_model_list
             server.global_model_list_raw_json = parsed_model_list
@@ -202,12 +202,12 @@ async def list_models(
         final_model_list = get_default_qwen_models()
 
     if not final_model_list:
-        logger.warning("/v1/models: 过滤后模型列表为空，使用 DEFAULT_QWEN_MODELS 作为最终回退。")
+        logger.warning("/v1/models: Filtrelenen model listesi boş; DEFAULT_QWEN_MODELS son çare olarak kullanılacak.")
         final_model_list = get_default_qwen_models()
 
     return {"object": "list", "data": final_model_list}
 
-# --- 聊天完成端点 ---
+# --- Sohbet tamamlanma ucu ---
 async def chat_completions(
     request: ChatCompletionRequest,
     http_request: Request,
@@ -216,9 +216,9 @@ async def chat_completions(
     server_state: Dict[str, Any] = Depends(get_server_state),
     worker_task = Depends(get_worker_task)
 ):
-    """处理聊天完成请求"""
+    """Sohbet tamamlama isteğini işler"""
     req_id = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=7))
-    logger.info(f"[{req_id}] 收到 /v1/chat/completions 请求 (Stream={request.stream})")
+    logger.info(f"[{req_id}] /v1/chat/completions isteği alındı (Stream={request.stream})")
     
     launch_mode = os.environ.get('LAUNCH_MODE', 'unknown')
     browser_page_critical = launch_mode != "direct_debug_no_browser"
@@ -227,9 +227,9 @@ async def chat_completions(
                           not server_state["is_playwright_ready"] or \
                           (browser_page_critical and (not server_state["is_page_ready"] or not server_state["is_browser_connected"])) or \
                           not worker_task or worker_task.done()
-    
+
     if service_unavailable:
-        raise HTTPException(status_code=503, detail=f"[{req_id}] 服务当前不可用。请稍后重试。", headers={"Retry-After": "30"})
+        raise HTTPException(status_code=503, detail=f"[{req_id}] Hizmet şu anda kullanılamıyor. Lütfen daha sonra yeniden deneyin.", headers={"Retry-After": "30"})
     
     result_future = Future()
     await request_queue.put({
@@ -241,31 +241,31 @@ async def chat_completions(
         timeout_seconds = RESPONSE_COMPLETION_TIMEOUT / 1000 + 120
         return await asyncio.wait_for(result_future, timeout=timeout_seconds)
     except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail=f"[{req_id}] 请求处理超时。")
+        raise HTTPException(status_code=504, detail=f"[{req_id}] İstek işlenirken zaman aşımı oluştu.")
     except asyncio.CancelledError:
-        raise HTTPException(status_code=499, detail=f"[{req_id}] 请求被客户端取消。")
+        raise HTTPException(status_code=499, detail=f"[{req_id}] İstek istemci tarafından iptal edildi.")
     except HTTPException as http_exc:
-        # 对于客户端断开连接的情况，使用更友好的日志级别
+        # İstemci bağlantısı koptuğunda daha nazik bir log seviyesi kullan
         if http_exc.status_code == 499:
-            logger.info(f"[{req_id}] 客户端断开连接: {http_exc.detail}")
+            logger.info(f"[{req_id}] İstemci bağlantısı kesildi: {http_exc.detail}")
         else:
-            logger.warning(f"[{req_id}] HTTP异常: {http_exc.detail}")
+            logger.warning(f"[{req_id}] HTTP hatası: {http_exc.detail}")
         raise http_exc
     except Exception as e:
-        logger.exception(f"[{req_id}] 等待Worker响应时出错")
-        raise HTTPException(status_code=500, detail=f"[{req_id}] 服务器内部错误: {e}")
+        logger.exception(f"[{req_id}] Worker yanıtını beklerken hata oluştu")
+        raise HTTPException(status_code=500, detail=f"[{req_id}] Sunucu iç hatası: {e}")
 
 
-# --- 取消请求相关 ---
+# --- İstek iptali ile ilgili yardımcılar ---
 async def cancel_queued_request(req_id: str, request_queue: Queue, logger: logging.Logger) -> bool:
-    """取消队列中的请求"""
+    """Kuyruktaki bir isteği iptal eder"""
     items_to_requeue = []
     found = False
     try:
         while not request_queue.empty():
             item = request_queue.get_nowait()
             if item.get("req_id") == req_id:
-                logger.info(f"[{req_id}] 在队列中找到请求，标记为已取消。")
+                logger.info(f"[{req_id}] İstek kuyrukta bulunup iptal edildi.")
                 item["cancelled"] = True
                 if (future := item.get("result_future")) and not future.done():
                     future.set_exception(HTTPException(status_code=499, detail=f"[{req_id}] Request cancelled."))
@@ -282,20 +282,20 @@ async def cancel_request(
     logger: logging.Logger = Depends(get_logger),
     request_queue: Queue = Depends(get_request_queue)
 ):
-    """取消请求端点"""
-    logger.info(f"[{req_id}] 收到取消请求。")
+    """İstek iptal uç noktası"""
+    logger.info(f"[{req_id}] İptal isteği alındı.")
     if await cancel_queued_request(req_id, request_queue, logger):
         return JSONResponse(content={"success": True, "message": f"Request {req_id} marked as cancelled."})
     else:
         return JSONResponse(status_code=404, content={"success": False, "message": f"Request {req_id} not found in queue."})
 
 
-# --- 队列状态端点 ---
+# --- Kuyruk durumu ucu ---
 async def get_queue_status(
     request_queue: Queue = Depends(get_request_queue),
     processing_lock: Lock = Depends(get_processing_lock)
 ):
-    """获取队列状态"""
+    """Kuyruğun durumunu döndürür"""
     queue_items = list(request_queue._queue)
     return JSONResponse(content={
         "queue_length": len(queue_items),
@@ -312,13 +312,13 @@ async def get_queue_status(
     })
 
 
-# --- WebSocket日志端点 ---
+# --- WebSocket günlük ucu ---
 async def websocket_log_endpoint(
     websocket: WebSocket,
     logger: logging.Logger = Depends(get_logger),
     log_ws_manager: WebSocketConnectionManager = Depends(get_log_ws_manager)
 ):
-    """WebSocket日志端点"""
+    """WebSocket üzerinden log akışını yönetir"""
     if not log_ws_manager:
         await websocket.close(code=1011)
         return
@@ -331,12 +331,12 @@ async def websocket_log_endpoint(
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        logger.error(f"日志 WebSocket (客户端 {client_id}) 发生异常: {e}", exc_info=True)
+        logger.error(f"Log WebSocket'i (istemci {client_id}) hata verdi: {e}", exc_info=True)
     finally:
         log_ws_manager.disconnect(client_id)
 
 
-# --- API密钥管理数据模型 ---
+# --- API anahtarı yönetimi veri modelleri ---
 class ApiKeyRequest(BaseModel):
     key: str
 
@@ -344,29 +344,29 @@ class ApiKeyTestRequest(BaseModel):
     key: str
 
 
-# --- API密钥管理端点 ---
+# --- API anahtarı yönetim uçları ---
 async def get_api_keys(logger: logging.Logger = Depends(get_logger)):
-    """获取API密钥列表"""
+    """API anahtarı listesini döndürür"""
     from api_utils import auth_utils
     try:
         auth_utils.initialize_keys()
-        keys_info = [{"value": key, "status": "有效"} for key in auth_utils.API_KEYS]
+        keys_info = [{"value": key, "status": "geçerli"} for key in auth_utils.API_KEYS]
         return JSONResponse(content={"success": True, "keys": keys_info, "total_count": len(keys_info)})
     except Exception as e:
-        logger.error(f"获取API密钥列表失败: {e}")
+        logger.error(f"API anahtarı listesi alınamadı: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 async def add_api_key(request: ApiKeyRequest, logger: logging.Logger = Depends(get_logger)):
-    """添加API密钥"""
+    """API anahtarı ekler"""
     from api_utils import auth_utils
     key_value = request.key.strip()
     if not key_value or len(key_value) < 8:
-        raise HTTPException(status_code=400, detail="无效的API密钥格式。")
+        raise HTTPException(status_code=400, detail="Geçersiz API anahtarı formatı.")
     
     auth_utils.initialize_keys()
     if key_value in auth_utils.API_KEYS:
-        raise HTTPException(status_code=400, detail="该API密钥已存在。")
+        raise HTTPException(status_code=400, detail="Bu API anahtarı zaten mevcut.")
 
     try:
         # --- MODIFIED LINE ---
@@ -378,36 +378,37 @@ async def add_api_key(request: ApiKeyRequest, logger: logging.Logger = Depends(g
             f.write(key_value)
         
         auth_utils.initialize_keys()
-        logger.info(f"API密钥已添加: {key_value[:4]}...{key_value[-4:]}")
-        return JSONResponse(content={"success": True, "message": "API密钥添加成功", "key_count": len(auth_utils.API_KEYS)})
+        logger.info(f"API anahtarı eklendi: {key_value[:4]}...{key_value[-4:]}")
+        return JSONResponse(content={"success": True, "message": "API anahtarı başarıyla eklendi", "key_count": len(auth_utils.API_KEYS)})
     except Exception as e:
-        logger.error(f"添加API密钥失败: {e}")
+        logger.error(f"API anahtarı eklenemedi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 async def test_api_key(request: ApiKeyTestRequest, logger: logging.Logger = Depends(get_logger)):
-    """测试API密钥"""
+    """API anahtarını doğrular"""
     from api_utils import auth_utils
     key_value = request.key.strip()
     if not key_value:
-        raise HTTPException(status_code=400, detail="API密钥不能为空。")
+        raise HTTPException(status_code=400, detail="API anahtarı boş olamaz.")
     
     auth_utils.initialize_keys()
     is_valid = auth_utils.verify_api_key(key_value)
-    logger.info(f"API密钥测试: {key_value[:4]}...{key_value[-4:]} - {'有效' if is_valid else '无效'}")
-    return JSONResponse(content={"success": True, "valid": is_valid, "message": "密钥有效" if is_valid else "密钥无效或不存在"})
+    status_text = "geçerli" if is_valid else "geçersiz"
+    logger.info(f"API anahtarı testi: {key_value[:4]}...{key_value[-4:]} - {status_text}")
+    return JSONResponse(content={"success": True, "valid": is_valid, "message": "Anahtar geçerli" if is_valid else "Anahtar geçersiz veya mevcut değil"})
 
 
 async def delete_api_key(request: ApiKeyRequest, logger: logging.Logger = Depends(get_logger)):
-    """删除API密钥"""
+    """API anahtarını siler"""
     from api_utils import auth_utils
     key_value = request.key.strip()
     if not key_value:
-        raise HTTPException(status_code=400, detail="API密钥不能为空。")
+        raise HTTPException(status_code=400, detail="API anahtarı boş olamaz.")
 
     auth_utils.initialize_keys()
     if key_value not in auth_utils.API_KEYS:
-        raise HTTPException(status_code=404, detail="API密钥不存在。")
+        raise HTTPException(status_code=404, detail="API anahtarı bulunamadı.")
 
     try:
         # --- MODIFIED LINE ---
@@ -420,9 +421,9 @@ async def delete_api_key(request: ApiKeyRequest, logger: logging.Logger = Depend
             f.writelines(line for line in lines if line.strip() != key_value)
             
         auth_utils.initialize_keys()
-        logger.info(f"API密钥已删除: {key_value[:4]}...{key_value[-4:]}")
-        return JSONResponse(content={"success": True, "message": "API密钥删除成功", "key_count": len(auth_utils.API_KEYS)})
+        logger.info(f"API anahtarı silindi: {key_value[:4]}...{key_value[-4:]}")
+        return JSONResponse(content={"success": True, "message": "API anahtarı başarıyla silindi", "key_count": len(auth_utils.API_KEYS)})
     except Exception as e:
-        logger.error(f"删除API密钥失败: {e}")
+        logger.error(f"API anahtarı silinemedi: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 

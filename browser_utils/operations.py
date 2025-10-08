@@ -199,12 +199,12 @@ async def force_dismiss_auth_overlays(page, logger=None, req_id: str = "unknown"
         "Stay logged out",
         "Continue without logging in",
         "Continue as guest",
-        "继续未登录",
-        "继续不登录",
-        "暂不登录",
-        "先不登录",
+        "\u7ee7\u7eed\u672a\u767b\u5f55",
+        "\u7ee7\u7eed\u4e0d\u767b\u5f55",
+        "\u6682\u4e0d\u767b\u5f55",
+        "\u5148\u4e0d\u767b\u5f55",
         "Not now",
-        "稍后再说",
+        "\u7a0d\u540e\u518d\u8bf4",
     ]
 
     # Try button-based variants first (preferred to DOM removal).
@@ -246,8 +246,8 @@ async def force_dismiss_auth_overlays(page, logger=None, req_id: str = "unknown"
         "already have an account",
         "powered by open webui",
         "welcome back to qwen",
-        "登录",
-        "注册",
+        "\u767b\u5f55",
+        "\u6ce8\u518c",
     ]
 
     try:

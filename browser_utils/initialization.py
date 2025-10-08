@@ -105,8 +105,8 @@ async def _stop_active_generation(page: AsyncPage) -> None:
     stop_selectors = [
         "button[aria-label='Stop generating']",
         "button:has-text('Stop')",
-        "button:has-text('停止')",
-        "button:has-text('停止生成')"
+        "button:has-text('\\u505c\\u6b62')",
+        "button:has-text('\\u505c\\u6b62\\u751f\\u6210')"
     ]
 
     for selector in stop_selectors:

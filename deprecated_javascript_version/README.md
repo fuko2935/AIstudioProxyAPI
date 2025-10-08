@@ -1,233 +1,233 @@
-# AI Studio Proxy Server (Javascript Version - DEPRECATED)
+# AI Studio Proxy Sunucusu (Javascript Sürümü - KULLANIMDAN KALDIRILDI)
 
-**⚠️ 警告：此 Javascript 版本 (`server.cjs`, `auto_connect_aistudio.cjs`) 已被弃用且不再维护。推荐使用项目根目录下的 Python 版本，该版本采用了模块化架构设计，具有更好的稳定性和可维护性。**
+**⚠️ Uyarı: Bu Javascript sürümü (`server.cjs`, `auto_connect_aistudio.cjs`) kullanımdan kaldırılmıştır ve artık bakımı yapılmamaktadır. Proje kök dizinindeki, modüler bir mimari tasarıma sahip, daha iyi kararlılık ve sürdürülebilirlik sunan Python sürümünü kullanmanız önerilir.**
 
-**📖 查看最新文档**: 请参考项目根目录下的 [`README.md`](../README.md) 了解当前Python版本的完整使用说明。
+**📖 En Son Belgeleri Görüntüleyin**: Mevcut Python sürümünün tam kullanım talimatları için lütfen proje kök dizinindeki [`README.md`](../README.md) dosyasına bakın.
 
 ---
 
-[点击查看项目使用演示视频](https://drive.google.com/file/d/1efR-cNG2CNboNpogHA1ASzmx45wO579p/view?usp=drive_link)
+[Proje kullanım tanıtım videosunu izlemek için tıklayın](https://drive.google.com/file/d/1efR-cNG2CNboNpogHA1ASzmx45wO579p/view?usp=drive_link)
 
-这是一个 Node.js + Playwright 服务器，通过模拟 OpenAI API 的方式来访问 Google AI Studio 网页版，服务器无缝交互转发 Gemini 对话。这使得兼容 OpenAI API 的客户端（如 Open WebUI, NextChat 等）可以使用 AI Studio 的无限额度及能力。
+Bu, Google AI Studio web sürümüne OpenAI API'sini taklit ederek erişen bir Node.js + Playwright sunucusudur ve Gemini konuşmalarını sorunsuz bir şekilde iletir. Bu, OpenAI API uyumlu istemcilerin (Open WebUI, NextChat vb.) AI Studio'nun sınırsız kotasını ve yeteneklerini kullanmasını sağlar.
 
-## ✨ 特性 (Javascript 版本)
+## ✨ Özellikler (Javascript Sürümü)
 
-*   **OpenAI API 兼容**: 提供 `/v1/chat/completions` 和 `/v1/models` 端点，兼容大多数 OpenAI 客户端。
-*   **流式响应**: 支持 `stream=true`，实现打字机效果。
-*   **非流式响应**: 支持 `stream=false`，一次性返回完整 JSON 响应。
-*   **系统提示词 (System Prompt)**: 支持通过请求体中的 `messages` 数组的 `system` 角色或额外的 `system_prompt` 字段传递系统提示词。
-*   **内部 Prompt 优化**: 自动包装用户输入，指导 AI Studio 输出特定格式（流式为 Markdown 代码块，非流式为 JSON），并包含起始标记 `<<<START_RESPONSE>>>` 以便解析。
-*   **自动连接脚本 (`auto_connect_aistudio.cjs`)**:
-    *   自动查找并启动 Chrome/Chromium 浏览器，开启调试端口，**并设置特定窗口宽度 (460px)** 以优化布局，确保"清空聊天"按钮可见。
-    *   自动检测并尝试连接已存在的 Chrome 调试实例。
-    *   提供交互式选项，允许用户选择连接现有实例或自动结束冲突进程。
-    *   自动查找或打开 AI Studio 的 `New chat` 页面。
-    *   自动启动 `server.cjs`。
-*   **服务端 (`server.cjs`)**:
-    *   连接到由 `auto_connect_aistudio.cjs` 管理的 Chrome 实例。
-    *   **自动清空上下文**: 当检测到来自客户端的请求可能是"新对话"时（基于消息历史长度），自动模拟点击 AI Studio 页面上的"Clear chat"按钮及其确认对话框，并验证清空效果，以实现更好的会话隔离。
-    *   处理 API 请求，通过 Playwright 操作 AI Studio 页面。
-    *   解析 AI Studio 的响应，提取有效内容。
-    *   提供简单的 Web UI (`/`) 进行基本测试。
-    *   提供健康检查端点 (`/health`)。
-*   **错误快照**: 在 Playwright 操作、响应解析或**清空聊天**出错时，自动在项目根目录下的 `errors/` 目录下保存页面截图和 HTML，方便调试。(注意: Python 版本错误快照在 `errors_py/`)
-*   **依赖检测**: 两个脚本在启动时都会检查所需依赖，并提供安装指导。
-*   **跨平台设计**: 旨在支持 macOS, Linux 和 Windows (WSL 推荐)。
+*   **OpenAI API Uyumluluğu**: Çoğu OpenAI istemcisiyle uyumlu `/v1/chat/completions` ve `/v1/models` uç noktaları sağlar.
+*   **Akışlı Yanıt**: Daktilo efekti için `stream=true` destekler.
+*   **Akışsız Yanıt**: Tam JSON yanıtını tek seferde döndürmek için `stream=false` destekler.
+*   **Sistem İstemcisi (System Prompt)**: İstek gövdesindeki `messages` dizisinin `system` rolü veya ek `system_prompt` alanı aracılığıyla sistem istemcisi iletmeyi destekler.
+*   **Dahili Prompt Optimizasyonu**: AI Studio'yu belirli bir formatta (akışlı için Markdown kod bloğu, akışsız için JSON) çıktı vermesi için yönlendirmek ve ayrıştırma için bir başlangıç ​​işaretçisi `<<<START_RESPONSE>>>` eklemek üzere kullanıcı girdisini otomatik olarak sarar.
+*   **Otomatik Bağlantı Betiği (`auto_connect_aistudio.cjs`)**:
+    *   Chrome/Chromium tarayıcısını otomatik olarak bulur ve başlatır, bir hata ayıklama bağlantı noktası açar ve **"Sohbeti temizle" düğmesinin görünür olmasını sağlamak için belirli bir pencere genişliği (460 piksel) ayarlar**.
+    *   Mevcut Chrome hata ayıklama örneklerini otomatik olarak algılar ve bağlanmaya çalışır.
+    *   Kullanıcıların mevcut bir örneğe bağlanmayı veya çakışan işlemleri otomatik olarak sonlandırmayı seçmelerine olanak tanıyan etkileşimli seçenekler sunar.
+    *   AI Studio'nun `Yeni sohbet` sayfasını otomatik olarak bulur veya açar.
+    *   `server.cjs`'yi otomatik olarak başlatır.
+*   **Sunucu Tarafı (`server.cjs`)**:
+    *   `auto_connect_aistudio.cjs` tarafından yönetilen Chrome örneğine bağlanır.
+    *   **Bağlamı Otomatik Temizleme**: İstemciden gelen bir isteğin "yeni bir konuşma" olabileceğini algıladığında (mesaj geçmişi uzunluğuna göre), daha iyi oturum yalıtımı sağlamak için AI Studio sayfasındaki "Sohbeti Temizle" düğmesine ve onay iletişim kutusuna tıklamayı otomatik olarak simüle eder ve temizleme etkisini doğrular.
+    *   API isteklerini işler, Playwright aracılığıyla AI Studio sayfasını çalıştırır.
+    *   AI Studio'nun yanıtını ayrıştırır, geçerli içeriği çıkarır.
+    *   Temel testler için basit bir Web Arayüzü (`/`) sağlar.
+    *   Bir sağlık kontrolü uç noktası (`/health`) sağlar.
+*   **Hata Anlık Görüntüleri**: Playwright işlemleri, yanıt ayrıştırma veya **sohbeti temizleme** sırasında bir hata oluştuğunda, hata ayıklamayı kolaylaştırmak için proje kök dizininin altındaki `errors/` dizinine otomatik olarak sayfa ekran görüntülerini ve HTML'yi kaydeder. (Not: Python sürümü hata anlık görüntüleri `errors_py/` içindedir)
+*   **Bağımlılık Tespiti**: Her iki betik de başlatıldığında gerekli bağımlılıkları kontrol eder ve kurulum talimatları sağlar.
+*   **Çapraz Platform Tasarımı**: macOS, Linux ve Windows'u (WSL önerilir) desteklemek üzere tasarlanmıştır.
 
-## ⚠️ 重要提示 (Javascript 版本)
+## ⚠️ Önemli Notlar (Javascript Sürümü)
 
-*   **非官方项目**: 本项目与 Google 无关，依赖于对 AI Studio Web 界面的自动化操作，可能因 AI Studio 页面更新而失效。
-*   **自动清空功能的脆弱性**: 自动清空上下文的功能依赖于精确的 UI 元素选择器 (`CLEAR_CHAT_BUTTON_SELECTOR`, `CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR` 在 `server.cjs` 中)。如果 AI Studio 页面结构发生变化，此功能可能会失效。届时需要更新这些选择器。
-*   **不支持历史编辑/分叉**: 即使实现了新对话的上下文清空，本代理仍然无法支持客户端进行历史消息编辑并从该点重新生成对话的功能。AI Studio 内部维护的对话历史是线性的。
-*   **固定窗口宽度**: `auto_connect_aistudio.cjs` 会以固定的宽度 (460px) 启动 Chrome 窗口，以确保清空按钮可见。
-*   **安全性**: 启动 Chrome 时开启了远程调试端口 (默认为 `8848`)，请确保此端口仅在受信任的网络环境中使用，或通过防火墙规则限制访问。切勿将此端口暴露到公网。
-*   **稳定性**: 由于依赖浏览器自动化，其稳定性不如官方 API。长时间运行或频繁请求可能导致页面无响应或连接中断，可能需要重启浏览器或服务器。
-*   **AI Studio 限制**: AI Studio 本身可能有请求频率限制、内容策略限制等，代理服务器无法绕过这些限制。
-*   **参数配置**: **像模型选择、温度、输出长度等参数，需要您直接在 AI Studio 页面的右侧设置面板中进行调整。本代理服务器目前不处理或转发这些通过 API 请求传递的参数。** 您需要预先在 AI Studio Web UI 中设置好所需的模型和参数。
+*   **Resmi Olmayan Proje**: Bu projenin Google ile hiçbir ilgisi yoktur ve AI Studio Web arayüzünün otomasyonuna dayanır, bu da AI Studio sayfa güncellemeleri nedeniyle bozulabilir.
+*   **Otomatik Temizleme İşlevinin Kırılganlığı**: Bağlamı otomatik temizleme işlevi, `server.cjs`'deki hassas UI öğe seçicilerine (`CLEAR_CHAT_BUTTON_SELECTOR`, `CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR`) dayanır. AI Studio sayfa yapısı değişirse, bu işlev başarısız olabilir. Bu durumda bu seçicilerin güncellenmesi gerekir.
+*   **Geçmiş Düzenleme/Dallandırma Desteği Yok**: Yeni konuşmalar için bağlam temizliği uygulansa bile, bu proxy istemcinin geçmiş mesajları düzenlemesini ve o noktadan itibaren konuşmayı yeniden oluşturmasını hala destekleyemez. AI Studio'nun dahili olarak sürdürdüğü konuşma geçmişi doğrusaldır.
+*   **Sabit Pencere Genişliği**: `auto_connect_aistudio.cjs`, temizleme düğmesinin görünür olmasını sağlamak için Chrome penceresini sabit bir genişlikte (460 piksel) başlatır.
+*   **Güvenlik**: Chrome'u başlatmak, uzak bir hata ayıklama bağlantı noktası (varsayılan olarak `8848`) açar. Lütfen bu bağlantı noktasının yalnızca güvenilir bir ağ ortamında kullanıldığından emin olun veya güvenlik duvarı kurallarıyla erişimi kısıtlayın. Bu bağlantı noktasını asla genel internete maruz bırakmayın.
+*   **Kararlılık**: Tarayıcı otomasyonuna dayandığı için kararlılığı resmi bir API kadar iyi değildir. Uzun süreli çalışma veya sık istekler sayfanın yanıt vermemesine veya bağlantının kesilmesine neden olabilir, bu da tarayıcının veya sunucunun yeniden başlatılmasını gerektirebilir.
+*   **AI Studio Sınırlamaları**: AI Studio'nun kendisinin istek sıklığı sınırlamaları, içerik politikası kısıtlamaları vb. olabilir ve proxy sunucusu bu sınırlamaları aşamaz.
+*   **Parametre Yapılandırması**: **Model seçimi, sıcaklık, çıktı uzunluğu gibi parametrelerin doğrudan AI Studio sayfasının sağ tarafındaki ayarlar panelinde ayarlanması gerekir. Bu proxy sunucusu şu anda API istekleri aracılığıyla iletilen bu parametreleri işlemez veya iletmez.** Gerekli modeli ve parametreleri AI Studio Web Arayüzünde önceden ayarlamanız gerekir.
 
-## 🛠️ 配置 (Javascript 版本)
+## 🛠️ Yapılandırma (Javascript Sürümü)
 
-虽然不建议频繁修改，但了解以下常量可能有助于理解脚本行为或在特殊情况下进行调整：
+Sık sık değiştirilmesi önerilmese de, aşağıdaki sabitleri anlamak betik davranışını anlamanıza veya özel durumlarda ayarlamalar yapmanıza yardımcı olabilir:
 
 **`auto_connect_aistudio.cjs`:**
 
-*   `DEBUGGING_PORT`: (默认 `8848`) Chrome 浏览器启动时使用的远程调试端口。
-*   `TARGET_URL`: (默认 `'https://aistudio.google.com/prompts/new_chat'`) 脚本尝试打开或导航到的 AI Studio 页面。
-*   `SERVER_SCRIPT_FILENAME`: (默认 `'server.cjs'`) 由此脚本自动启动的 API 服务器文件名。
-*   `CONNECT_TIMEOUT_MS`: (默认 `20000`) 连接到 Chrome 调试端口的超时时间 (毫秒)。
-*   `NAVIGATION_TIMEOUT_MS`: (默认 `35000`) Playwright 等待页面导航完成的超时时间 (毫秒)。
-*   `--window-size=460,...`: 启动 Chrome 时传递的参数，固定宽度以保证 UI 元素（如清空按钮）位置相对稳定。
+*   `DEBUGGING_PORT`: (varsayılan `8848`) Chrome tarayıcısı başlatıldığında kullanılan uzak hata ayıklama bağlantı noktası.
+*   `TARGET_URL`: (varsayılan `'https://aistudio.google.com/prompts/new_chat'`) Betiğin açmaya veya gezinmeye çalıştığı AI Studio sayfası.
+*   `SERVER_SCRIPT_FILENAME`: (varsayılan `'server.cjs'`) Bu betik tarafından otomatik olarak başlatılan API sunucusu dosya adı.
+*   `CONNECT_TIMEOUT_MS`: (varsayılan `20000`) Chrome hata ayıklama bağlantı noktasına bağlanma zaman aşımı (milisaniye).
+*   `NAVIGATION_TIMEOUT_MS`: (varsayılan `35000`) Playwright'ın sayfa gezinmesinin tamamlanmasını bekleme zaman aşımı (milisaniye).
+*   `--window-size=460,...`: UI öğelerinin (temizleme düğmesi gibi) konumunun nispeten kararlı olmasını sağlamak için Chrome başlatılırken iletilen parametre.
 
 **`server.cjs`:**
 
-*   `SERVER_PORT`: (默认 `2048`) API 服务器监听的端口。
-*   `AI_STUDIO_URL_PATTERN`: (默认 `'aistudio.google.com/'`) 用于识别 AI Studio 页面的 URL 片段。
-*   `RESPONSE_COMPLETION_TIMEOUT`: (默认 `300000`) 等待 AI Studio 响应完成的总超时时间 (毫秒，5分钟)。
-*   `POLLING_INTERVAL`: (默认 `300`) 轮询检查 AI Studio 页面状态的间隔 (毫秒)。
-*   `SILENCE_TIMEOUT_MS`: (默认 `3000`) 判断 AI Studio 是否停止输出的静默超时时间 (毫秒)。
-*   `CLEAR_CHAT_VERIFY_TIMEOUT_MS`: (默认 `5000`) 等待并验证清空聊天操作完成的超时时间 (毫秒)。
-*   **CSS 选择器**: (`INPUT_SELECTOR`, `SUBMIT_BUTTON_SELECTOR`, `RESPONSE_CONTAINER_SELECTOR`, `LOADING_SPINNER_SELECTOR`, `ERROR_TOAST_SELECTOR`, `CLEAR_CHAT_BUTTON_SELECTOR`, `CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR`) 这些常量定义了脚本用于查找页面元素的选择器。**修改这些值需要具备前端知识，并且如果 AI Studio 页面更新，这些是最可能需要调整的部分。**
+*   `SERVER_PORT`: (varsayılan `2048`) API sunucusunun dinlediği bağlantı noktası.
+*   `AI_STUDIO_URL_PATTERN`: (varsayılan `'aistudio.google.com/'`) AI Studio sayfasını tanımlamak için kullanılan URL parçası.
+*   `RESPONSE_COMPLETION_TIMEOUT`: (varsayılan `300000`) AI Studio yanıtının tamamlanmasını beklemek için toplam zaman aşımı (milisaniye, 5 dakika).
+*   `POLLING_INTERVAL`: (varsayılan `300`) AI Studio sayfa durumunu kontrol etme aralığı (milisaniye).
+*   `SILENCE_TIMEOUT_MS`: (varsayılan `3000`) AI Studio'nun çıktı vermeyi durdurup durdurmadığını belirlemek için sessizlik zaman aşımı (milisaniye).
+*   `CLEAR_CHAT_VERIFY_TIMEOUT_MS`: (varsayılan `5000`) Sohbeti temizleme işleminin tamamlanmasını beklemek ve doğrulamak için zaman aşımı (milisaniye).
+*   **CSS Seçicileri**: (`INPUT_SELECTOR`, `SUBMIT_BUTTON_SELECTOR`, `RESPONSE_CONTAINER_SELECTOR`, `LOADING_SPINNER_SELECTOR`, `ERROR_TOAST_SELECTOR`, `CLEAR_CHAT_BUTTON_SELECTOR`, `CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR`) Bu sabitler, betiğin sayfa öğelerini bulmak için kullandığı seçicileri tanımlar. **Bu değerleri değiştirmek ön uç bilgisi gerektirir ve AI Studio sayfası güncellenirse, bunlar ayarlanması en olası kısımlardır.**
 
-## ⚙️ Prompt 内部处理 (Javascript 版本)
+## ⚙️ Prompt Dahili İşlemleri (Javascript Sürümü)
 
-为了让代理能够解析 AI Studio 的输出，`server.cjs` 会在将你的 Prompt 发送到 AI Studio 前进行包装，加入特定的指令，要求 AI：
+Proxy'nin AI Studio'nun çıktısını ayrıştırabilmesi için, `server.cjs` isteminizi AI Studio'ya göndermeden önce belirli talimatlar ekleyerek sarar ve AI'dan şunları ister:
 
-1.  **对于非流式请求 (`stream=false`)**: 将整个回复包裹在一个 JSON 对象中，格式为 `{"response": "<<<START_RESPONSE>>>[AI的实际回复]"}`。
-2.  **对于流式请求 (`stream=true`)**: 将整个回复（包括开始和结束）包裹在一个 Markdown 代码块 (```) 中，并在实际回复前加上标记 `<<<START_RESPONSE>>>`，形如：
+1.  **Akışsız istekler için (`stream=false`)**: Tüm yanıtı `{"response": "<<<START_RESPONSE>>>[AI'nin gerçek yanıtı]"}` biçiminde bir JSON nesnesine sarın.
+2.  **Akışlı istekler için (`stream=true`)**: Tüm yanıtı (başlangıç ​​ve bitiş dahil) bir Markdown kod bloğuna (```) sarın ve gerçek yanıttan önce `<<<START_RESPONSE>>>` işaretçisini ekleyin, örneğin:
     ```markdown
     ```
-    <<<START_RESPONSE>>>[AI的实际回复第一部分]
-    [AI的实际回复第二部分]
+    <<<START_RESPONSE>>>[AI'nin gerçek yanıtının ilk kısmı]
+    [AI'nin gerçek yanıtının ikinci kısmı]
     ...
     ```
     ```
 
-`server.cjs` 会查找 `<<<START_RESPONSE>>>` 标记来提取真正的回复内容。这意味着你通过 API 得到的回复是经过这个内部处理流程的，AI Studio 页面的原始输出格式会被改变。
+`server.cjs`, gerçek yanıt içeriğini çıkarmak için `<<<START_RESPONSE>>>` işaretçisini arar. Bu, API aracılığıyla aldığınız yanıtın bu dahili işleme sürecinden geçtiği ve AI Studio sayfasının orijinal çıktı biçiminin değiştirileceği anlamına gelir.
 
-## 🚀 开始使用 (Javascript 版本)
+## 🚀 Başlarken (Javascript Sürümü)
 
-### 1. 先决条件
+### 1. Ön Koşullar
 
-*   **Node.js**: v16 或更高版本。
-*   **NPM / Yarn / PNPM**: 用于安装依赖。
-*   **Google Chrome / Chromium**: 需要安装浏览器本体。
-*   **Google AI Studio 账号**: 并能正常访问和使用。
+*   **Node.js**: v16 veya üstü.
+*   **NPM / Yarn / PNPM**: Bağımlılıkları yüklemek için.
+*   **Google Chrome / Chromium**: Tarayıcının kendisinin kurulu olması gerekir.
+*   **Google AI Studio Hesabı**: Ve normal şekilde erişilebilir ve kullanılabilir olmalıdır.
 
-### 2. 安装
+### 2. Kurulum
 
-1.  **进入弃用版本目录**:
+1.  **Kullanımdan kaldırılan sürüm dizinine girin**:
     ```bash
     cd deprecated_javascript_version
     ```
 
-2.  **安装依赖**:
-    根据 `package.json` 文件，脚本运行需要以下核心依赖：
-    *   `express`: Web 框架，用于构建 API 服务器。
-    *   `cors`: 处理跨域资源共享。
-    *   `playwright`: 浏览器自动化库。
-    *   `@playwright/test`: Playwright 的测试库，`server.cjs` 使用其 `expect` 功能进行断言。
+2.  **Bağımlılıkları yükleyin**:
+    `package.json` dosyasına göre, betiğin çalışması için aşağıdaki temel bağımlılıklar gerekir:
+    *   `express`: API sunucusu oluşturmak için kullanılan web çerçevesi.
+    *   `cors`: Alanlar arası kaynak paylaşımını işler.
+    *   `playwright`: Tarayıcı otomasyonu kütüphanesi.
+    *   `@playwright/test`: Playwright'ın test kütüphanesi, `server.cjs` iddialar için `expect` işlevini kullanır.
 
-    使用你的包管理器安装：
+    Paket yöneticinizi kullanarak yükleyin:
     ```bash
     npm install
-    # 或
+    # veya
     yarn install
-    # 或
+    # veya
     pnpm install
     ```
 
-### 3. 运行
+### 3. Çalıştırma
 
-只需要运行 `auto_connect_aistudio.cjs` 脚本即可启动所有服务：
+Tüm hizmetleri başlatmak için yalnızca `auto_connect_aistudio.cjs` betiğini çalıştırmanız yeterlidir:
 
 ```bash
 node auto_connect_aistudio.cjs
 ```
 
-这个脚本会执行以下操作：
+Bu betik aşağıdaki işlemleri gerçekleştirir:
 
-1.  **检查依赖**: 确认上述 Node.js 模块已安装，且 `server.cjs` 文件存在。
-2.  **检查 Chrome 调试端口 (`8848`)**:
-    *   如果端口空闲，尝试自动查找并启动一个新的 Chrome 实例（窗口宽度固定为 460px），并打开远程调试端口。
-    *   如果端口被占用，询问用户是连接现有实例还是尝试清理端口后启动新实例。
-3.  **连接 Playwright**: 尝试连接到 Chrome 的调试端口 (`http://127.0.0.1:8848`)。
-4.  **管理 AI Studio 页面**: 查找或打开 AI Studio 的 `New chat` 页面 (`https://aistudio.google.com/prompts/new_chat`)，并尝试置于前台。
-5.  **启动 API 服务器**: 如果以上步骤成功，脚本会自动在后台启动 `node server.cjs`。
+1.  **Bağımlılıkları kontrol et**: Yukarıdaki Node.js modüllerinin kurulu olduğunu ve `server.cjs` dosyasının mevcut olduğunu onaylar.
+2.  **Chrome hata ayıklama bağlantı noktasını kontrol et (`8848`)**:
+    *   Bağlantı noktası boşsa, yeni bir Chrome örneğini (pencere genişliği 460 piksel olarak sabitlenmiş) otomatik olarak bulmaya ve başlatmaya ve uzak hata ayıklama bağlantı noktasını açmaya çalışır.
+    *   Bağlantı noktası meşgulse, kullanıcıya mevcut bir örneğe mi bağlanmak istediğini yoksa bağlantı noktasını temizledikten sonra yeni bir örnek mi başlatmak istediğini sorar.
+3.  **Playwright'a bağlan**: Chrome'un hata ayıklama bağlantı noktasına (`http://127.0.0.1:8848`) bağlanmaya çalışır.
+4.  **AI Studio sayfasını yönet**: AI Studio'nun `Yeni sohbet` sayfasını (`https://aistudio.google.com/prompts/new_chat`) bulur veya açar ve ön plana getirmeye çalışır.
+5.  **API sunucusunu başlat**: Yukarıdaki adımlar başarılı olursa, betik arka planda otomatik olarak `node server.cjs`'yi başlatır.
 
-当 `server.cjs` 成功启动并连接到 Playwright 后，您将在终端看到类似以下的输出（来自 `server.cjs`）：
+`server.cjs` başarıyla başlatıldığında ve Playwright'a bağlandığında, terminalde aşağıdakine benzer bir çıktı göreceksiniz (`server.cjs`'den):
 
 ```
 =============================================================
-          🚀 AI Studio Proxy Server (vX.XX - Queue & Auto Clear) 🚀
+          🚀 AI Studio Proxy Sunucusu (vX.XX - Kuyruk ve Otomatik Temizleme) 🚀
 =============================================================
-🔗 监听地址: http://localhost:2048
-   - Web UI (测试): http://localhost:2048/
-   - API 端点:   http://localhost:2048/v1/chat/completions
-   - 模型接口:   http://localhost:2048/v1/models
-   - 健康检查:   http://localhost:2048/health
+🔗 Dinleme adresi: http://localhost:2048
+   - Web Arayüzü (Test): http://localhost:2048/
+   - API Uç Noktası:   http://localhost:2048/v1/chat/completions
+   - Model Arayüzü:   http://localhost:2048/v1/models
+   - Sağlık Kontrolü:   http://localhost:2048/health
 -------------------------------------------------------------
-✅ Playwright 连接成功，服务已准备就绪！
+✅ Playwright bağlantısı başarılı, hizmet hazır!
 -------------------------------------------------------------
 ```
-*(版本号可能不同)*
+*(Sürüm numarası farklı olabilir)*
 
-此时，代理服务已准备就绪，监听在 `http://localhost:2048`。
+Bu noktada, proxy hizmeti `http://localhost:2048` adresinde dinlemeye hazırdır.
 
-### 4. 配置客户端 (以 Open WebUI 为例)
+### 4. İstemciyi Yapılandırma (Örnek olarak Open WebUI)
 
-1.  打开 Open WebUI。
-2.  进入 "设置" -> "连接"。
-3.  在 "模型" 部分，点击 "添加模型"。
-4.  **模型名称**: 输入你想要的名字，例如 `aistudio-gemini-cjs`。
-5.  **API 基础 URL**: 输入代理服务器的地址，例如 `http://localhost:2048/v1` (注意包含 `/v1`)。
-6.  **API 密钥**: 留空或输入任意字符 (服务器不验证)。
-7.  保存设置。
-8.  现在，你应该可以在 Open WebUI 中选择 `aistudio-gemini-cjs` 模型并开始聊天了。
+1.  Open WebUI'yi açın.
+2.  "Ayarlar" -> "Bağlantılar" bölümüne gidin.
+3.  "Modeller" bölümünde, "Model Ekle"ye tıklayın.
+4.  **Model Adı**: İstediğiniz bir ad girin, örneğin `aistudio-gemini-cjs`.
+5.  **API Temel URL'si**: Proxy sunucusunun adresini girin, örneğin `http://localhost:2048/v1` (`/v1`'i dahil ettiğinizden emin olun).
+6.  **API Anahtarı**: Boş bırakın veya herhangi bir karakter girin (sunucu doğrulamaz).
+7.  Ayarları kaydedin.
+8.  Artık Open WebUI'de `aistudio-gemini-cjs` modelini seçip sohbete başlayabilmelisiniz.
 
-### 5. 使用测试脚本 (可选)
+### 5. Test Betiğini Kullanma (İsteğe Bağlı)
 
-本目录下提供了一个 `test.js` 脚本，用于在命令行中直接与代理进行交互式聊天。
+Bu dizinde, komut satırında doğrudan proxy ile etkileşimli sohbet için bir `test.js` betiği bulunmaktadır.
 
-1.  **安装额外依赖**: `test.js` 使用了 OpenAI 的官方 Node.js SDK。
+1.  **Ek bağımlılıkları yükleyin**: `test.js`, OpenAI'nin resmi Node.js SDK'sını kullanır.
     ```bash
     npm install openai
-    # 或 yarn add openai / pnpm add openai
+    # veya yarn add openai / pnpm add openai
     ```
-2.  **检查配置**: 打开 `test.js`，确认 `LOCAL_PROXY_URL` 指向你的代理服务器地址 (`http://127.0.0.1:2048/v1/`)。`DUMMY_API_KEY` 可以保持不变。
-3.  **运行测试**: 在 `deprecated_javascript_version` 目录下运行：
+2.  **Yapılandırmayı kontrol edin**: `test.js`'yi açın ve `LOCAL_PROXY_URL`'nin proxy sunucu adresinize (`http://127.0.0.1:2048/v1/`) işaret ettiğini onaylayın. `DUMMY_API_KEY` olduğu gibi kalabilir.
+3.  **Testi çalıştırın**: `deprecated_javascript_version` dizininde şunu çalıştırın:
     ```bash
     node test.js
     ```
-    之后就可以在命令行输入问题进行测试了。输入 `exit` 退出。
+    Ardından test için komut satırına sorular girebilirsiniz. Çıkmak için `exit` yazın.
 
-## 💻 多平台指南 (Javascript 版本)
+## 💻 Çoklu Platform Kılavuzu (Javascript Sürümü)
 
 *   **macOS**:
-    *   `auto_connect_aistudio.cjs` 通常能自动找到 Chrome。
-    *   防火墙可能会提示是否允许 Node.js 接受网络连接，请允许。
+    *   `auto_connect_aistudio.cjs` genellikle Chrome'u otomatik olarak bulabilir.
+    *   Güvenlik duvarı, Node.js'nin ağ bağlantılarını kabul edip etmemesini sorabilir, lütfen izin verin.
 *   **Linux**:
-    *   确保已安装 `google-chrome-stable` 或 `chromium-browser`。
-    *   如果脚本找不到 Chrome，你可能需要修改 `auto_connect_aistudio.cjs` 中的 `getChromePath` 函数，手动指定路径，或者创建一个符号链接 (`/usr/bin/google-chrome`) 指向实际的 Chrome 可执行文件。
-    *   某些 Linux 发行版可能需要安装额外的 Playwright 依赖库，参考 [Playwright Linux 文档](https://playwright.dev/docs/intro#system-requirements)。运行 `npx playwright install-deps` 可能有助于安装。
+    *   `google-chrome-stable` veya `chromium-browser`'ın kurulu olduğundan emin olun.
+    *   Betik Chrome'u bulamazsa, `auto_connect_aistudio.cjs`'deki `getChromePath` işlevini manuel olarak yolu belirtmek için değiştirmeniz veya gerçek Chrome yürütülebilir dosyasına işaret eden bir sembolik bağlantı (`/usr/bin/google-chrome`) oluşturmanız gerekebilir.
+    *   Bazı Linux dağıtımları ek Playwright bağımlılık kitaplıkları yüklemenizi gerektirebilir, [Playwright Linux belgelerine](https://playwright.dev/docs/intro#system-requirements) bakın. `npx playwright install-deps` komutunu çalıştırmak yüklemeye yardımcı olabilir.
 *   **Windows**:
-    *   **强烈建议使用 WSL (Windows Subsystem for Linux)**。在 WSL 中按照 Linux 指南操作通常更顺畅。
-    *   **直接在 Windows 上运行 (不推荐)**:
-        *   `auto_connect_aistudio.cjs` 可能需要手动修改 `getChromePath` 函数来指定 Chrome 的完整路径 (例如 `C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe`)。注意路径中的反斜杠需要转义 (`\\`)。
-        *   防火墙设置需要允许 Node.js 和 Chrome 监听和连接端口 (`8848` 和 `2048`)。
-        *   由于文件系统和权限差异，可能会遇到未知问题，例如端口检查或进程结束操作 (`taskkill`) 失败。
+    *   **WSL (Windows Subsystem for Linux) kullanmanız şiddetle tavsiye edilir**. WSL'de Linux kılavuzunu takip etmek genellikle daha sorunsuzdur.
+    *   **Doğrudan Windows'ta çalıştırma (önerilmez)**:
+        *   `auto_connect_aistudio.cjs`'nin Chrome'un tam yolunu belirtmek için `getChromePath` işlevini manuel olarak değiştirmeniz gerekebilir (örneğin `C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe`). Yoldaki ters eğik çizgilerin kaçış karakteriyle (`\\`) yazılması gerektiğini unutmayın.
+        *   Güvenlik duvarı ayarlarının Node.js ve Chrome'un bağlantı noktalarını (`8848` ve `2048`) dinlemesine ve bağlanmasına izin vermesi gerekir.
+        *   Dosya sistemi ve izin farklılıkları nedeniyle, bağlantı noktası kontrolü veya işlem sonlandırma işlemleri (`taskkill`) gibi bilinmeyen sorunlarla karşılaşabilirsiniz.
 
-## 🔧 故障排除 (Javascript 版本)
+## 🔧 Sorun Giderme (Javascript Sürümü)
 
-*   **`auto_connect_aistudio.cjs` 启动失败或报错**:
-    *   **依赖未找到**: 确认运行了 `npm install` 等命令。
-    *   **Chrome 路径找不到**: 确认 Chrome/Chromium 已安装，并按需修改 `getChromePath` 函数或创建符号链接 (Linux)。
-    *   **端口 (`8848`) 被占用且无法自动清理**: 根据脚本提示，使用系统工具（如 `lsof -i :8848` / `tasklist | findstr "8848"`）手动查找并结束占用端口的进程。
-    *   **连接 Playwright 超时**: 确认 Chrome 是否已成功启动并监听 `8848` 端口，防火墙是否阻止本地连接 `127.0.0.1:8848`。查看 `auto_connect_aistudio.cjs` 中的 `CONNECT_TIMEOUT_MS` 是否足够。
-    *   **打开/导航 AI Studio 页面失败**: 检查网络连接，尝试手动在浏览器中打开 `https://aistudio.google.com/prompts/new_chat` 并完成登录。查看 `NAVIGATION_TIMEOUT_MS` 是否足够。
-    *   **窗口大小问题**: 如果 460px 宽度导致问题，可以尝试修改 `auto_connect_aistudio.cjs` 中的 `--window-size` 参数，但这可能影响自动清空功能。
-*   **`server.cjs` 启动时提示端口被占用 (`EADDRINUSE`)**:
-    *   检查是否有其他程序 (包括旧的服务器实例) 正在使用 `2048` 端口。关闭冲突程序或修改 `server.cjs` 中的 `SERVER_PORT`。
-*   **服务器日志显示 Playwright 未就绪或连接失败 (在 `server.cjs` 启动后)**:
-    *   通常意味着 `auto_connect_aistudio.cjs` 启动的 Chrome 实例意外关闭或无响应。检查 Chrome 窗口是否还在，AI Studio 页面是否崩溃。
-    *   尝试关闭所有相关进程（`node` 和 `chrome`），然后重新运行 `node auto_connect_aistudio.cjs`。
-    *   检查根目录下的 `errors/` 目录是否有截图和 HTML 文件，它们可能包含 AI Studio 页面的错误信息或状态。
-*   **客户端 (如 Open WebUI) 无法连接或请求失败**: 
-    *   确认 API 基础 URL 配置正确 (`http://localhost:2048/v1`)。
-    *   检查 `server.cjs` 运行的终端是否有错误输出。
-    *   确保客户端和服务器在同一网络中，且防火墙没有阻止从客户端到服务器 `2048` 端口的连接。
-*   **API 请求返回 5xx 错误**: 
-    *   **503 Service Unavailable / Playwright not ready**: `server.cjs` 无法连接到 Chrome。
-    *   **504 Gateway Timeout**: 请求处理时间超过了 `RESPONSE_COMPLETION_TIMEOUT`。可能是 AI Studio 响应慢或卡住了。
-    *   **502 Bad Gateway / AI Studio Error**: `server.cjs` 在 AI Studio 页面上检测到了错误提示 (`toast` 消息)，或无法正确解析 AI 的响应。检查 `errors/` 快照。
-    *   **500 Internal Server Error**: `server.cjs` 内部发生未捕获的错误。检查服务器日志和 `errors/` 快照。
-*   **AI 回复不完整、格式错误或包含 `<<<START_RESPONSE>>>` 标记**: 
-    *   AI Studio 的 Web UI 输出不稳定。服务器尽力解析，但可能失败。
-    *   非流式请求：如果返回的 JSON 中缺少 `response` 字段或无法解析，服务器可能返回空内容或原始 JSON 字符串。检查 `errors/` 快照确认 AI Studio 页面的实际输出。
-    *   流式请求：如果 AI 未按预期输出 Markdown 代码块或起始标记，流式传输可能提前中断或包含非预期内容。
-    *   尝试调整 Prompt 或稍后重试。
-*   **自动清空上下文失败**:
-    *   服务器日志出现 "清空聊天记录或验证时出错" 或 "验证超时" 的警告。
-    *   **原因**: AI Studio 网页更新导致 `server.cjs` 中的 `CLEAR_CHAT_BUTTON_SELECTOR` 或 `CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR` 失效。
-    *   **解决**: 检查 `errors/` 快照，使用浏览器开发者工具检查实际页面元素，并更新 `server.cjs` 文件顶部的选择器常量。
-    *   **原因**: 清空操作本身耗时超过了 `CLEAR_CHAT_VERIFY_TIMEOUT_MS`。
-    *   **解决**: 如果网络或机器较慢，可以尝试在 `server.cjs` 中适当增加这个超时时间。 
+*   **`auto_connect_aistudio.cjs` başlatılamıyor veya hata veriyor**:
+    *   **Bağımlılık bulunamadı**: `npm install` gibi komutları çalıştırdığınızdan emin olun.
+    *   **Chrome yolu bulunamadı**: Chrome/Chromium'un kurulu olduğundan emin olun ve gerektiğinde `getChromePath` işlevini değiştirin veya bir sembolik bağlantı oluşturun (Linux).
+    *   **Bağlantı noktası (`8848`) meşgul ve otomatik olarak temizlenemiyor**: Betik istemlerine göre, bağlantı noktasını meşgul eden işlemi manuel olarak bulmak ve sonlandırmak için sistem araçlarını (örneğin `lsof -i :8848` / `tasklist | findstr "8848"`) kullanın.
+    *   **Playwright'a bağlanma zaman aşımı**: Chrome'un başarıyla başlatıldığını ve `8848` numaralı bağlantı noktasını dinlediğini ve güvenlik duvarının yerel bağlantıyı `127.0.0.1:8848` engellemediğini onaylayın. `auto_connect_aistudio.cjs`'deki `CONNECT_TIMEOUT_MS`'nin yeterli olup olmadığını kontrol edin.
+    *   **AI Studio sayfasını açma/gezinme başarısız**: Ağ bağlantısını kontrol edin, `https://aistudio.google.com/prompts/new_chat`'i tarayıcıda manuel olarak açmayı ve oturum açmayı deneyin. `NAVIGATION_TIMEOUT_MS`'nin yeterli olup olmadığını kontrol edin.
+    *   **Pencere boyutu sorunu**: 460 piksel genişlik sorunlara neden oluyorsa, `auto_connect_aistudio.cjs`'deki `--window-size` parametresini değiştirmeyi deneyebilirsiniz, ancak bu otomatik temizleme işlevini etkileyebilir.
+*   **`server.cjs` başlatıldığında bağlantı noktası meşgul hatası (`EADDRINUSE`)**:
+    *   Başka bir programın (eski sunucu örnekleri dahil) `2048` numaralı bağlantı noktasını kullanıp kullanmadığını kontrol edin. Çakışan programı kapatın veya `server.cjs`'deki `SERVER_PORT`'u değiştirin.
+*   **Sunucu günlüğü Playwright'ın hazır olmadığını veya bağlantının başarısız olduğunu gösteriyor (`server.cjs` başlatıldıktan sonra)**:
+    *   Genellikle `auto_connect_aistudio.cjs` tarafından başlatılan Chrome örneğinin beklenmedik bir şekilde kapandığı veya yanıt vermediği anlamına gelir. Chrome penceresinin hala orada olup olmadığını ve AI Studio sayfasının çöküp çökmediğini kontrol edin.
+    *   Tüm ilgili işlemleri (`node` ve `chrome`) kapatmayı ve ardından `node auto_connect_aistudio.cjs`'yi yeniden çalıştırmayı deneyin.
+    *   Kök dizindeki `errors/` dizininde ekran görüntüleri ve HTML dosyaları olup olmadığını kontrol edin, bunlar AI Studio sayfasının hata mesajlarını veya durumunu içerebilir.
+*   **İstemci (örneğin Open WebUI) bağlanamıyor veya istek başarısız oluyor**:
+    *   API temel URL'sinin doğru yapılandırıldığını onaylayın (`http://localhost:2048/v1`).
+    *   `server.cjs`'nin çalıştığı terminalde hata çıktısı olup olmadığını kontrol edin.
+    *   İstemcinin ve sunucunun aynı ağda olduğundan ve güvenlik duvarının istemciden sunucunun `2048` numaralı bağlantı noktasına bağlantıyı engellemediğinden emin olun.
+*   **API isteği 5xx hatası döndürüyor**:
+    *   **503 Service Unavailable / Playwright not ready**: `server.cjs` Chrome'a bağlanamıyor.
+    *   **504 Gateway Timeout**: İstek işleme süresi `RESPONSE_COMPLETION_TIMEOUT`'u aştı. AI Studio yavaş yanıt veriyor veya takılmış olabilir.
+    *   **502 Bad Gateway / AI Studio Error**: `server.cjs` AI Studio sayfasında bir hata mesajı (`toast` mesajı) algıladı veya AI'nın yanıtını doğru şekilde ayrıştıramadı. `errors/` anlık görüntülerini kontrol edin.
+    *   **500 Internal Server Error**: `server.cjs`'de yakalanmamış bir hata oluştu. Sunucu günlüklerini ve `errors/` anlık görüntülerini kontrol edin.
+*   **AI yanıtı eksik, yanlış biçimlendirilmiş veya `<<<START_RESPONSE>>>` işaretçisini içeriyor**:
+    *   AI Studio'nun Web Arayüzü çıktısı kararsız. Sunucu ayrıştırmak için elinden geleni yapar, ancak başarısız olabilir.
+    *   Akışsız istekler: Dönen JSON'da `response` alanı eksikse veya ayrıştırılamıyorsa, sunucu boş içerik veya ham JSON dizesi döndürebilir. AI Studio sayfasının gerçek çıktısını onaylamak için `errors/` anlık görüntülerini kontrol edin.
+    *   Akışlı istekler: AI beklendiği gibi Markdown kod bloğu veya başlangıç ​​işaretçisi çıktısı vermezse, akış erken kesilebilir veya beklenmedik içerik içerebilir.
+    *   İstemi ayarlamayı veya daha sonra yeniden denemeyi deneyin.
+*   **Bağlamı otomatik temizleme başarısız**:
+    *   Sunucu günlüğünde "Sohbet geçmişi temizlenirken veya doğrulanırken hata oluştu" veya "Doğrulama zaman aşımı" uyarısı görünüyor.
+    *   **Neden**: AI Studio web sayfası güncellemesi, `server.cjs`'deki `CLEAR_CHAT_BUTTON_SELECTOR` veya `CLEAR_CHAT_CONFIRM_BUTTON_SELECTOR`'ın geçersiz olmasına neden oldu.
+    *   **Çözüm**: `errors/` anlık görüntülerini kontrol edin, gerçek sayfa öğelerini kontrol etmek için tarayıcı geliştirici araçlarını kullanın ve `server.cjs` dosyasının üstündeki seçici sabitlerini güncelleyin.
+    *   **Neden**: Temizleme işleminin kendisi `CLEAR_CHAT_VERIFY_TIMEOUT_MS`'den daha uzun sürdü.
+    *   **Çözüm**: Ağ veya makine yavaşsa, `server.cjs`'de bu zaman aşımı süresini uygun şekilde artırmayı deneyebilirsiniz.

@@ -1,5 +1,5 @@
 """
-FastAPI应用初始化和生命周期管理
+FastAPI uygulamasının başlatılması ve yaşam döngüsü yönetimi
 """
 
 import asyncio
@@ -20,13 +20,13 @@ from playwright.async_api import Browser as AsyncBrowser, Playwright as AsyncPla
 # --- FIX: Replaced star import with explicit imports ---
 from config import NO_PROXY_ENV, EXCLUDED_MODELS_FILENAME
 
-# --- models模块导入 ---
+# --- models modülü içe aktarımı ---
 from models import WebSocketConnectionManager
 
-# --- logging_utils模块导入 ---
+# --- logging_utils modülü içe aktarımı ---
 from logging_utils import setup_server_logging, restore_original_streams
 
-# --- browser_utils模块导入 ---
+# --- browser_utils modülü içe aktarımı ---
 from browser_utils import (
     _initialize_page_logic,
     _close_page_logic,
@@ -39,7 +39,7 @@ import stream
 from asyncio import Queue, Lock
 from . import auth_utils
 
-# 全局状态变量（这些将在server.py中被引用）
+# Global durum değişkenleri (bunlar server.py'de referans alınacak)
 playwright_manager: Optional[AsyncPlaywright] = None
 browser_instance: Optional[AsyncBrowser] = None
 page_instance = None
@@ -243,33 +243,33 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
             "/health",
             "/docs",
             "/openapi.json",
-            # FastAPI 自动生成的其他文档路径
+            # FastAPI tarafından otomatik oluşturulan diğer dokümantasyon yolları
             "/redoc",
             "/favicon.ico"
         ]
 
     async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable]):
-        if not auth_utils.API_KEYS:  # 如果 API_KEYS 为空，则不进行验证
+        if not auth_utils.API_KEYS:  # API_KEYS boşsa doğrulama yapma
             return await call_next(request)
 
-        # 检查是否是需要保护的路径
+        # Korunması gereken bir yol mu kontrol et
         if not request.url.path.startswith("/v1/"):
             return await call_next(request)
 
-        # 检查是否是排除的路径
+        # Hariç tutulan yol mu kontrol et
         for excluded_path in self.excluded_paths:
             if request.url.path == excluded_path or request.url.path.startswith(excluded_path + "/"):
                 return await call_next(request)
 
-        # 支持多种认证头格式以兼容OpenAI标准
+        # OpenAI standartlarıyla uyum için birden fazla kimlik doğrulama başlığını destekle
         api_key = None
 
-        # 1. 优先检查标准的 Authorization: Bearer <token> 头
+        # 1. Öncelikle Authorization: Bearer <token> başlığını kontrol et
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
-            api_key = auth_header[7:]  # 移除 "Bearer " 前缀
+            api_key = auth_header[7:]  # "Bearer " önekini çıkar
 
-        # 2. 回退到自定义的 X-API-Key 头（向后兼容）
+        # 2. Geriye dönük uyumluluk için X-API-Key başlığını dene
         if not api_key:
             api_key = request.headers.get("X-API-Key")
 
@@ -288,18 +288,18 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 def create_app() -> FastAPI:
-    """创建FastAPI应用实例"""
+    """FastAPI uygulama örneği oluşturur"""
     app = FastAPI(
-        title="AI Studio Proxy Server (集成模式)",
-        description="通过 Playwright与 AI Studio 交互的代理服务器。",
+        title="AI Studio Proxy Server (entegre mod)",
+        description="Playwright aracılığıyla AI Studio ile iletişim kuran proxy sunucusu.",
         version="0.6.0-integrated",
         lifespan=lifespan
     )
     
-    # 添加中间件
+    # Middleware ekle
     app.add_middleware(APIKeyAuthMiddleware)
 
-    # 注册路由
+    # Rotaları kaydet
     from .routes import (
         read_index, get_css, get_js, get_api_info,
         health_check, list_models, chat_completions,
@@ -319,7 +319,7 @@ def create_app() -> FastAPI:
     app.get("/v1/queue")(get_queue_status)
     app.websocket("/ws/logs")(websocket_log_endpoint)
 
-    # API密钥管理端点
+    # API anahtarı yönetim uç noktaları
     app.get("/api/keys")(get_api_keys)
     app.post("/api/keys")(add_api_key)
     app.post("/api/keys/test")(test_api_key)
